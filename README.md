@@ -52,3 +52,17 @@ Apply the SQL in `sql/step3_profiles.sql` to create the `profiles` table, trigge
 Run the app and use:
 - `/login` to sign in or sign up.
 - `/me` to view your email + profile role and log out.
+
+## Step 4: Team lead absence reporting
+1. Apply the SQL in `sql/step4_core.sql` to create `teams`, `workers`, and `absence_cases` with RLS policies.
+2. Assign a team to a team lead profile (replace the user id):
+
+```sql
+update public.profiles
+set team_id = (select id from public.teams where name = 'Team 1' limit 1)
+where id = 'YOUR_USER_ID';
+```
+
+3. Run the app and, as a team lead, use:
+   - `/team/report` to report a missing/absent worker.
+   - `/team/cases` to see the last 20 cases for the team.
