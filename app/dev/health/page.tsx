@@ -7,7 +7,11 @@ type HealthResponse = {
   supabaseUrlPresent: boolean;
   serviceKeyPresent: boolean;
   queryOk: boolean;
-  error?: string;
+  serverReachable: boolean;
+  count?: number;
+  errorSummary?: string;
+  errorCode?: string;
+  errorDetails?: string;
 };
 
 /**
@@ -34,7 +38,8 @@ export default function DevHealthPage() {
             supabaseUrlPresent: false,
             serviceKeyPresent: false,
             queryOk: false,
-            error: err instanceof Error ? err.message : "Unknown error",
+            serverReachable: false,
+            errorSummary: err instanceof Error ? err.message : "Unknown error",
           });
         }
       } finally {
@@ -60,7 +65,7 @@ export default function DevHealthPage() {
         <p>Loading health status…</p>
       ) : (
         <p className={`text-lg font-medium ${statusColor}`}>
-          {data?.queryOk ? "OK" : data?.error || "Supabase query failed"}
+          {data?.queryOk ? "OK" : data?.errorSummary || "Supabase query failed"}
         </p>
       )}
       <section className="rounded border border-slate-200 bg-slate-50 p-4">
