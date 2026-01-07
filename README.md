@@ -38,3 +38,17 @@ app/api/dev/health/route.ts
 app/dev/health/page.tsx
 lib/supabaseServer.ts
 ```
+
+## Step 3: Supabase auth + profiles
+Update `.env.local` with the browser anon key:
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+Apply the SQL in `sql/step3_profiles.sql` to create the `profiles` table, trigger, and RLS policies.
+
+Run the app and use:
+- `/login` to sign in or sign up.
+- `/me` to view your email + profile role and log out.
