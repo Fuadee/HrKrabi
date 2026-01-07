@@ -7,7 +7,14 @@ type HealthResponse = {
   supabaseUrlPresent: boolean;
   serviceKeyPresent: boolean;
   queryOk: boolean;
-  error?: string;
+  errorSummary: string;
+  errorName?: string;
+  errorMessage?: string;
+  errorCode?: string;
+  errorDetails?: string;
+  errorHint?: string;
+  cause?: unknown;
+  stack?: string;
 };
 
 /**
@@ -17,7 +24,49 @@ export async function GET() {
   const supabaseUrlPresent = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const serviceKeyPresent = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
   let queryOk = false;
-  let error: string | undefined;
+  let errorSummary = "OK";
+  let errorName: string | undefined;
+  let errorMessage: string | undefined;
+  let errorCode: string | undefined;
+  let errorDetails: string | undefined;
+  let errorHint: string | undefined;
+  let cause: unknown;
+  let stack: string | undefined;
+
+  const captureUnknown = (err: unknown) => {
+    const errorLike = err as {
+      name?: string;
+      message?: string;
+      code?: string;
+      cause?: unknown;
+      stack?: string;
+    };
+    errorSummary = errorLike?.message ?? "Unknown error";
+    errorName = errorLike?.name;
+    errorMessage = errorLike?.message;
+    errorCode = errorLike?.code;
+    cause = safeSerialize(errorLike?.cause);
+    stack =
+      process.env.NODE_ENV !== "production" ? errorLike?.stack : undefined;
+  };
+
+  const safeSerialize = (value: unknown) => {
+    if (value === undefined) {
+      return undefined;
+    }
+    if (value instanceof Error) {
+      return {
+        name: value.name,
+        message: value.message,
+        stack: value.stack,
+      };
+    }
+    try {
+      return JSON.parse(JSON.stringify(value));
+    } catch {
+      return String(value);
+    }
+  };
 
   if (!supabaseUrlPresent || !serviceKeyPresent) {
     const missing = [
@@ -26,23 +75,49 @@ export async function GET() {
     ]
       .filter(Boolean)
       .join(", ");
-    error = `Missing Supabase environment variables: ${missing}.`;
+    errorSummary = `Missing Supabase environment variables: ${missing}.`;
+    errorName = "MissingSupabaseEnv";
+    errorMessage = errorSummary;
   } else {
     try {
       const supabase = getSupabaseServerClient();
       const { error: queryError } = await supabase
         .from("teams")
-        .select("*")
+        .select("now()")
         .limit(1);
 
       if (queryError) {
+        errorSummary = queryError.message ?? "Supabase query error";
+        errorName = queryError.name;
+        errorMessage = queryError.message;
+        errorCode = queryError.code;
+        errorDetails = queryError.details;
+        errorHint = queryError.hint;
         throw queryError;
       }
 
       queryOk = true;
     } catch (err) {
-      error = err instanceof Error ? err.message : "Unknown error";
+      captureUnknown(err);
     }
+  }
+
+  const errorInfo =
+    errorSummary === "OK"
+      ? undefined
+      : {
+          errorSummary,
+          errorName,
+          errorMessage,
+          errorCode,
+          errorDetails,
+          errorHint,
+          cause,
+          stack,
+        };
+
+  if (errorInfo) {
+    console.error("Supabase dev health check failed", errorInfo);
   }
 
   const response: HealthResponse = {
@@ -50,7 +125,14 @@ export async function GET() {
     supabaseUrlPresent,
     serviceKeyPresent,
     queryOk,
-    ...(error ? { error } : {}),
+    errorSummary,
+    ...(errorName ? { errorName } : {}),
+    ...(errorMessage ? { errorMessage } : {}),
+    ...(errorCode ? { errorCode } : {}),
+    ...(errorDetails ? { errorDetails } : {}),
+    ...(errorHint ? { errorHint } : {}),
+    ...(cause ? { cause } : {}),
+    ...(stack ? { stack } : {}),
   };
 
   return NextResponse.json(response);
