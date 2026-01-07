@@ -7,6 +7,7 @@ type HealthResponse = {
   supabaseUrlPresent: boolean;
   serviceKeyPresent: boolean;
   queryOk: boolean;
+  serverTime?: string;
   errorSummary: string;
   errorName?: string;
   errorMessage?: string;
@@ -32,6 +33,7 @@ export async function GET() {
   let errorHint: string | undefined;
   let cause: unknown;
   let stack: string | undefined;
+  let serverTime: string | undefined;
 
   const captureUnknown = (err: unknown) => {
     const errorLike = err as {
@@ -81,10 +83,9 @@ export async function GET() {
   } else {
     try {
       const supabase = getSupabaseServerClient();
-      const { error: queryError } = await supabase
-        .from("teams")
-        .select("now()")
-        .limit(1);
+      const { data, error: queryError } = await supabase.rpc("sql", {
+        query: "select now() as server_time;",
+      });
 
       if (queryError) {
         errorSummary = queryError.message ?? "Supabase query error";
@@ -96,6 +97,10 @@ export async function GET() {
         throw queryError;
       }
 
+      serverTime = Array.isArray(data) ? data[0]?.server_time : undefined;
+      if (!serverTime) {
+        throw new Error("Supabase query returned no server_time.");
+      }
       queryOk = true;
     } catch (err) {
       captureUnknown(err);
@@ -125,6 +130,7 @@ export async function GET() {
     supabaseUrlPresent,
     serviceKeyPresent,
     queryOk,
+    ...(serverTime ? { serverTime } : {}),
     errorSummary,
     ...(errorName ? { errorName } : {}),
     ...(errorMessage ? { errorMessage } : {}),
