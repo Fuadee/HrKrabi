@@ -19,7 +19,6 @@ type CaseRow = {
   recruitment_status: string;
   recruitment_updated_at: string | null;
   hr_swap_approved_at: string | null;
-  updated_at?: string | null;
 };
 
 type TeamCaseResponse = {
@@ -96,7 +95,6 @@ function computeLastUpdateAt(row: CaseRow) {
     row.hr_swap_approved_at
       ? new Date(row.hr_swap_approved_at).getTime()
       : reportedTimestamp,
-    row.updated_at ? new Date(row.updated_at).getTime() : reportedTimestamp,
   ].filter((value) => !Number.isNaN(value));
 
   return new Date(Math.max(...timestamps)).toISOString();
@@ -155,7 +153,7 @@ export async function GET(request: NextRequest) {
     const { data: caseRows, error: casesError } = await supabase
       .from("absence_cases")
       .select(
-        "id, worker_id, reported_at, hr_status, final_status, hr_received_at, sla_deadline_at, recruitment_status, recruitment_updated_at, hr_swap_approved_at, updated_at",
+        "distinct on (worker_id) id, worker_id, reported_at, hr_status, final_status, hr_received_at, sla_deadline_at, recruitment_status, recruitment_updated_at, hr_swap_approved_at",
       )
       .eq("team_id", profile.team_id)
       .in("worker_id", workerIds)
@@ -169,16 +167,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const latestByWorker = new Map<string, CaseRow>();
-    (caseRows ?? []).forEach((row) => {
-      if (!latestByWorker.has(row.worker_id)) {
-        latestByWorker.set(row.worker_id, row);
-      }
-    });
-
-    const response: TeamCaseResponse[] = Array.from(
-      latestByWorker.values(),
-    ).map((row) => ({
+    const response: TeamCaseResponse[] = (caseRows ?? []).map((row) => ({
       id: row.id,
       worker_id: row.worker_id,
       reported_at: row.reported_at,
