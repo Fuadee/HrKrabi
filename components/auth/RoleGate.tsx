@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import {
   getRoleDefaultRoute,
   isPathAllowedForRole,
+  isUserRole,
 } from "@/lib/roleAccess";
 
 const ROLE_NOTICE_KEY = "role_notice";
@@ -22,24 +23,40 @@ export default function RoleGate({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { role, status } = useAuth();
+  const redirectRef = useRef<{ target: string | null }>({ target: null });
+
+  useEffect(() => {
+    redirectRef.current.target = null;
+  }, [pathname]);
 
   useEffect(() => {
     if (status !== "authed") {
       return;
     }
 
-    if (!role) {
+    if (!role || role === "unknown") {
       if (pathname !== "/my-profile" && pathname !== "/me") {
         setRoleNotice("Role not assigned.");
-        router.replace("/my-profile");
+        if (redirectRef.current.target !== "/my-profile") {
+          redirectRef.current.target = "/my-profile";
+          router.replace("/my-profile");
+        }
       }
+      return;
+    }
+
+    if (!isUserRole(role)) {
       return;
     }
 
     if (!isPathAllowedForRole(role, pathname)) {
       const redirectTarget = getRoleDefaultRoute(role);
-      if (redirectTarget !== pathname) {
+      if (
+        redirectTarget !== pathname &&
+        redirectRef.current.target !== redirectTarget
+      ) {
         setRoleNotice("Access restricted to your role.");
+        redirectRef.current.target = redirectTarget;
         router.replace(redirectTarget);
       }
     }

@@ -1,18 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import { login } from "@/lib/auth";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
-import { getRoleDefaultRoute } from "@/lib/roleAccess";
+import { getRoleDefaultRoute, isUserRole } from "@/lib/roleAccess";
 
 const roleNoticeKey = "role_notice";
 
 export default function LoginPage() {
   const router = useRouter();
   const { status: authStatus, role } = useAuth();
+  const redirectRef = useRef<{ target: string | null }>({ target: null });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -24,14 +25,21 @@ export default function LoginPage() {
       return;
     }
     if (authStatus === "authed") {
-      if (role) {
-        router.replace(getRoleDefaultRoute(role));
+      if (isUserRole(role)) {
+        const target = getRoleDefaultRoute(role);
+        if (redirectRef.current.target !== target) {
+          redirectRef.current.target = target;
+          router.replace(target);
+        }
         return;
       }
       if (typeof window !== "undefined") {
         window.sessionStorage.setItem(roleNoticeKey, "Role not assigned.");
       }
-      router.replace("/my-profile");
+      if (redirectRef.current.target !== "/my-profile") {
+        redirectRef.current.target = "/my-profile";
+        router.replace("/my-profile");
+      }
     }
   }, [authStatus, role, router]);
 

@@ -2,6 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type UserRole = "team_lead" | "hr_prov";
 
+export type RoleFetchResult = {
+  role: UserRole | null;
+  error: Error | null;
+};
+
 export const ROLE_DEFAULT_ROUTE: Record<UserRole, string> = {
   team_lead: "/team-dashboard",
   hr_prov: "/hr/dashboard",
@@ -41,22 +46,33 @@ export function isPathAllowedForRole(role: UserRole, pathname: string): boolean 
 
 export async function fetchUserRole(
   supabase: SupabaseClient,
-): Promise<UserRole | null> {
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-
-  if (userError || !userData.user) {
-    return null;
+  userId?: string,
+): Promise<RoleFetchResult> {
+  let resolvedUserId = userId;
+  if (!resolvedUserId) {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      return { role: null, error: new Error(userError.message) };
+    }
+    if (!userData.user) {
+      return { role: null, error: null };
+    }
+    resolvedUserId = userData.user.id;
   }
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
-    .eq("id", userData.user.id)
+    .eq("id", resolvedUserId)
     .single<{ role: string }>();
 
-  if (profileError || !profile || !isUserRole(profile.role)) {
-    return null;
+  if (profileError) {
+    return { role: null, error: new Error(profileError.message) };
   }
 
-  return profile.role;
+  if (!profile || !isUserRole(profile.role)) {
+    return { role: null, error: null };
+  }
+
+  return { role: profile.role, error: null };
 }
