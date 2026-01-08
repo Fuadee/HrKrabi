@@ -41,19 +41,19 @@ export async function getSession(): Promise<SessionState> {
 export async function login(credentials: {
   email: string;
   password: string;
-}): Promise<{ error?: string }> {
+}): Promise<{ ok: boolean; userId?: string; error?: string }> {
   const supabase = getSupabaseBrowserClient();
-  const { error } = await supabase.auth.signInWithPassword(credentials);
+  const { data, error } = await supabase.auth.signInWithPassword(credentials);
 
   if (!error && typeof window !== "undefined") {
     window.localStorage.setItem(TOKEN_KEY, "signed_in");
   }
 
   if (error) {
-    return { error: error.message };
+    return { ok: false, error: error.message };
   }
 
-  return {};
+  return { ok: true, userId: data.user?.id };
 }
 
 export async function logout(): Promise<{ error?: string }> {

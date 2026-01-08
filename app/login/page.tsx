@@ -27,6 +27,10 @@ function LoginContent() {
     if (authStatus === "authed") {
       if (isUserRole(role)) {
         const target = getRoleDefaultRoute(role);
+        if (process.env.NODE_ENV !== "production") {
+          // eslint-disable-next-line no-console
+          console.debug("LOGIN_REDIRECT", target);
+        }
         if (redirectRef.current.target !== target) {
           redirectRef.current.target = target;
           router.replace(target);
@@ -37,6 +41,10 @@ function LoginContent() {
         window.sessionStorage.setItem(roleNoticeKey, "Role not assigned.");
       }
       if (redirectRef.current.target !== "/my-profile") {
+        if (process.env.NODE_ENV !== "production") {
+          // eslint-disable-next-line no-console
+          console.debug("LOGIN_REDIRECT", "/my-profile");
+        }
         redirectRef.current.target = "/my-profile";
         router.replace("/my-profile");
       }
@@ -51,11 +59,29 @@ function LoginContent() {
     setLoading(true);
     setError(null);
     setStatusMessage(null);
-    const { error: signInError } = await login({ email, password });
-    if (signInError) {
-      setError(signInError);
+    const { ok, error: signInError, userId } = await login({ email, password });
+    if (!ok) {
+      setError(signInError ?? "Unable to sign in.");
       setLoading(false);
       return;
+    }
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.debug("SIGNIN_OK", userId ?? "unknown");
+    }
+    const target = isUserRole(role)
+      ? getRoleDefaultRoute(role)
+      : "/my-profile";
+    if (!isUserRole(role) && typeof window !== "undefined") {
+      window.sessionStorage.setItem(roleNoticeKey, "Role not assigned.");
+    }
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.debug("LOGIN_REDIRECT", target);
+    }
+    if (redirectRef.current.target !== target) {
+      redirectRef.current.target = target;
+      router.replace(target);
     }
     setLoading(false);
   };
