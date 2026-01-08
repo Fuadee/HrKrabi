@@ -8,6 +8,7 @@ type ProfileRow = {
 
 type CaseRow = {
   id: string;
+  worker_id: string;
   reason: string;
   note: string | null;
   reported_at: string;
@@ -19,14 +20,11 @@ type CaseRow = {
   recruitment_updated_at: string | null;
   hr_swap_approved_at: string | null;
   updated_at?: string | null;
-  workers: { full_name: string } | null;
 };
 
 type TeamCaseResponse = {
   id: string;
-  worker_name: string;
-  reason: string;
-  note: string | null;
+  worker_id: string;
   reported_at: string;
   hr_status: string;
   final_status: string;
@@ -145,12 +143,24 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const workerIdsParam = request.nextUrl.searchParams.get("worker_ids");
+    const workerIds = workerIdsParam
+      ? workerIdsParam.split(",").map((id) => id.trim())
+      : [];
+
+    if (workerIds.length === 0) {
+      return NextResponse.json({ data: [] });
+    }
+
     const { data: caseRows, error: casesError } = await supabase
       .from("absence_cases")
-      .select("*, workers(full_name)")
+      .select(
+        "id, worker_id, reported_at, hr_status, final_status, hr_received_at, sla_deadline_at, recruitment_status, recruitment_updated_at, hr_swap_approved_at, updated_at",
+      )
       .eq("team_id", profile.team_id)
-      .order("reported_at", { ascending: false })
-      .limit(20);
+      .in("worker_id", workerIds)
+      .order("worker_id", { ascending: true })
+      .order("reported_at", { ascending: false });
 
     if (casesError) {
       return NextResponse.json(
@@ -159,11 +169,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const response: TeamCaseResponse[] = (caseRows ?? []).map((row) => ({
+    const latestByWorker = new Map<string, CaseRow>();
+    (caseRows ?? []).forEach((row) => {
+      if (!latestByWorker.has(row.worker_id)) {
+        latestByWorker.set(row.worker_id, row);
+      }
+    });
+
+    const response: TeamCaseResponse[] = Array.from(
+      latestByWorker.values(),
+    ).map((row) => ({
       id: row.id,
-      worker_name: row.workers?.full_name ?? "Unknown",
-      reason: row.reason,
-      note: row.note,
+      worker_id: row.worker_id,
       reported_at: row.reported_at,
       hr_status: row.hr_status,
       final_status: row.final_status,

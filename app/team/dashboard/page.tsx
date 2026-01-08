@@ -27,9 +27,7 @@ type MembershipRow = {
 
 type CaseRow = {
   id: string;
-  worker_name: string;
-  reason: string;
-  note: string | null;
+  worker_id: string;
   reported_at: string;
   hr_status: string;
   final_status: string;
@@ -83,7 +81,9 @@ export default function TeamDashboardPage() {
   const [endedReason, setEndedReason] = useState("quit");
   const [endedNote, setEndedNote] = useState("");
   const [removing, setRemoving] = useState(false);
-  const [reportedCases, setReportedCases] = useState<CaseRow[]>([]);
+  const [latestCasesByWorker, setLatestCasesByWorker] = useState<
+    Record<string, CaseRow>
+  >({});
   const [casesLoading, setCasesLoading] = useState(false);
   const [casesError, setCasesError] = useState<string | null>(null);
 
@@ -189,18 +189,29 @@ export default function TeamDashboardPage() {
       return;
     }
 
-    const casesResponse = await fetch("/api/team/cases", {
+    const workerIds = (activeData ?? []).map((member) => member.worker_id);
+    const casesResponse = await fetch(
+      `/api/team/cases?worker_ids=${workerIds.join(",")}`,
+      {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
-    });
+      },
+    );
     const casesPayload = (await casesResponse.json()) as TeamCasesResponse;
 
     if (!casesResponse.ok) {
       setCasesError(casesPayload.error ?? "Unable to load reported cases.");
-      setReportedCases([]);
+      setLatestCasesByWorker({});
     } else {
-      setReportedCases(casesPayload.data ?? []);
+      const mapped = (casesPayload.data ?? []).reduce<Record<string, CaseRow>>(
+        (accumulator, row) => {
+          accumulator[row.worker_id] = row;
+          return accumulator;
+        },
+        {},
+      );
+      setLatestCasesByWorker(mapped);
     }
 
     setCasesLoading(false);
@@ -231,22 +242,48 @@ export default function TeamDashboardPage() {
   const formatDateTime = (value?: string | null) =>
     value ? new Date(value).toLocaleString() : "-";
 
-  const formatRecruitmentStatus = (status?: string | null) => {
-    if (!status) {
-      return "Unknown";
-    }
-    if (status === "not_found") {
-      return "Not found";
-    }
-    return status.replace(/_/g, " ");
-  };
-
-  const hrStatusStyles: Record<string, string> = {
-    pending: "bg-slate-700/50 text-slate-200 border-slate-600/60",
-    received: "bg-blue-500/20 text-blue-200 border-blue-500/40",
+  const statusStyles: Record<string, string> = {
+    reported: "bg-slate-700/50 text-slate-200 border-slate-600/60",
     in_sla: "bg-emerald-500/20 text-emerald-200 border-emerald-500/40",
     sla_expired: "bg-amber-500/20 text-amber-200 border-amber-500/40",
+    not_found: "bg-rose-500/20 text-rose-200 border-rose-500/40",
+    found: "bg-sky-500/20 text-sky-200 border-sky-500/40",
+    swapped: "bg-violet-500/20 text-violet-200 border-violet-500/40",
+    vacant: "bg-orange-500/20 text-orange-200 border-orange-500/40",
     closed: "bg-slate-500/30 text-slate-100 border-slate-500/40",
+    default: "bg-slate-700/50 text-slate-200 border-slate-600/60",
+  };
+
+  const getCaseStatus = (caseRow?: CaseRow | null) => {
+    if (!caseRow) {
+      return { label: "—", style: statusStyles.default };
+    }
+
+    const finalStatus = caseRow.final_status;
+    if (["swapped", "vacant", "closed"].includes(finalStatus)) {
+      return {
+        label: finalStatus.replace(/_/g, " "),
+        style: statusStyles[finalStatus] ?? statusStyles.default,
+      };
+    }
+
+    if (caseRow.hr_status === "pending" && !caseRow.hr_received_at) {
+      return { label: "Reported", style: statusStyles.reported };
+    }
+    if (caseRow.hr_status === "in_sla") {
+      return { label: "In SLA", style: statusStyles.in_sla };
+    }
+    if (caseRow.hr_status === "sla_expired") {
+      return { label: "SLA Expired", style: statusStyles.sla_expired };
+    }
+    if (caseRow.recruitment_status === "not_found") {
+      return { label: "Not Found", style: statusStyles.not_found };
+    }
+    if (caseRow.recruitment_status === "found") {
+      return { label: "Found", style: statusStyles.found };
+    }
+
+    return { label: "In progress", style: statusStyles.default };
   };
 
   const handleAddMember = async () => {
@@ -450,13 +487,15 @@ export default function TeamDashboardPage() {
                     <tr>
                       <th className="px-4 py-3 text-left">Name</th>
                       <th className="px-4 py-3 text-left">Start date</th>
+                      <th className="px-4 py-3 text-left">Case status</th>
+                      <th className="px-4 py-3 text-left">Last update</th>
                       <th className="px-4 py-3 text-left">Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {activeMembers.length === 0 ? (
                       <tr>
-                        <td className="px-4 py-4 text-slate-400" colSpan={3}>
+                        <td className="px-4 py-4 text-slate-400" colSpan={5}>
                           No active members.
                         </td>
                       </tr>
@@ -473,6 +512,51 @@ export default function TeamDashboardPage() {
                             {new Date(
                               `${member.start_date}T00:00:00`,
                             ).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-3">
+                            {casesLoading ? (
+                              <span className="text-xs text-slate-400">
+                                Loading...
+                              </span>
+                            ) : (
+                              (() => {
+                                const caseRow =
+                                  latestCasesByWorker[member.worker_id];
+                                const status = getCaseStatus(caseRow);
+                                return (
+                                  <span
+                                    className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${status.style}`}
+                                  >
+                                    {status.label}
+                                  </span>
+                                );
+                              })()
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {casesLoading ? (
+                              <span className="text-xs text-slate-400">
+                                Loading...
+                              </span>
+                            ) : (
+                              (() => {
+                                const caseRow =
+                                  latestCasesByWorker[member.worker_id];
+                                if (!caseRow) {
+                                  return "-";
+                                }
+                                return (
+                                  <div className="space-y-1 text-sm">
+                                    <p>{formatDateTime(caseRow.last_update_at)}</p>
+                                    {caseRow.sla_deadline_at ? (
+                                      <p className="text-xs text-slate-400">
+                                        SLA {formatDate(caseRow.sla_deadline_at)}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                );
+                              })()
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <button
@@ -542,107 +626,11 @@ export default function TeamDashboardPage() {
                   </button>
                 </div>
               ) : null}
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <h2 className="text-lg font-semibold">
-                  Reported cases (HR progress)
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Track HR status, SLA timing, and recruitment outcomes for
-                  reported absences.
-                </p>
-              </div>
-              {casesLoading ? (
-                <p className="text-sm text-slate-300">Loading cases...</p>
-              ) : null}
               {casesError ? (
                 <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
                   {casesError}
                 </p>
               ) : null}
-              <div className="overflow-hidden rounded-lg border border-slate-800">
-                <table className="w-full border-collapse text-sm">
-                  <thead className="bg-slate-900/60 text-slate-300">
-                    <tr>
-                      <th className="px-4 py-3 text-left">Worker</th>
-                      <th className="px-4 py-3 text-left">Reason</th>
-                      <th className="px-4 py-3 text-left">Reported</th>
-                      <th className="px-4 py-3 text-left">HR status</th>
-                      <th className="px-4 py-3 text-left">SLA deadline</th>
-                      <th className="px-4 py-3 text-left">
-                        Recruitment outcome
-                      </th>
-                      <th className="px-4 py-3 text-left">Last update</th>
-                      <th className="px-4 py-3 text-left">Notes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reportedCases.length === 0 && !casesLoading ? (
-                      <tr>
-                        <td className="px-4 py-4 text-slate-400" colSpan={8}>
-                          No reported cases yet.
-                        </td>
-                      </tr>
-                    ) : (
-                      reportedCases.map((caseItem) => (
-                        <tr
-                          key={caseItem.id}
-                          className="border-t border-slate-800 text-slate-200"
-                        >
-                          <td className="px-4 py-3">
-                            {caseItem.worker_name}
-                          </td>
-                          <td className="px-4 py-3 capitalize">
-                            {caseItem.reason}
-                          </td>
-                          <td className="px-4 py-3">
-                            {formatDateTime(caseItem.reported_at)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${
-                                hrStatusStyles[caseItem.hr_status] ??
-                                "border-slate-600/60 bg-slate-700/50 text-slate-200"
-                              }`}
-                            >
-                              {caseItem.hr_status.replace(/_/g, " ")}
-                            </span>
-                            <p className="mt-1 text-xs text-slate-400">
-                              Final:{" "}
-                              {caseItem.final_status.replace(/_/g, " ")}
-                            </p>
-                          </td>
-                          <td className="px-4 py-3">
-                            {formatDate(caseItem.sla_deadline_at)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <p className="capitalize">
-                              {formatRecruitmentStatus(
-                                caseItem.recruitment_status,
-                              )}
-                            </p>
-                            <p className="text-xs text-slate-400">
-                              {caseItem.recruitment_updated_at
-                                ? `Updated ${formatDateTime(
-                                    caseItem.recruitment_updated_at,
-                                  )}`
-                                : "No update yet"}
-                            </p>
-                          </td>
-                          <td className="px-4 py-3">
-                            {formatDateTime(caseItem.last_update_at)}
-                          </td>
-                          <td className="px-4 py-3 text-slate-300">
-                            {caseItem.note || "-"}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
             </div>
 
             <div className="space-y-3">
