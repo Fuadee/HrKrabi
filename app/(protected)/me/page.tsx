@@ -22,30 +22,43 @@ export default function MePage() {
 
     const loadProfile = async () => {
       const supabase = getSupabaseBrowserClient();
-      const { data, error: userError } = await supabase.auth.getUser();
+      try {
+        const { data, error: userError } = await supabase.auth.getUser();
 
-      if (userError || !data.user) {
-        router.replace("/login");
-        return;
-      }
-
-      if (isMounted) {
-        setEmail(data.user.email ?? null);
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", data.user.id)
-        .single<Profile>();
-
-      if (isMounted) {
-        if (profileError) {
-          setError(profileError.message);
-        } else {
-          setRole(profile?.role ?? null);
+        if (userError || !data.user) {
+          router.replace("/login");
+          return;
         }
-        setLoading(false);
+
+        if (isMounted) {
+          setEmail(data.user.email ?? null);
+        }
+
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", data.user.id)
+          .single<Profile>();
+
+        if (isMounted) {
+          if (profileError) {
+            setError(profileError.message);
+          } else {
+            setRole(profile?.role ?? null);
+          }
+        }
+      } catch (fetchError) {
+        if (isMounted) {
+          setError(
+            fetchError instanceof Error
+              ? fetchError.message
+              : "Failed to load profile."
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
