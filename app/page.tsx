@@ -69,6 +69,12 @@ export default function HomePage() {
         {role === "team_lead" ? (
           <>
             <Link
+              href="/team/dashboard"
+              className="rounded-full border border-slate-700 px-4 py-2 transition hover:border-slate-500"
+            >
+              Team dashboard
+            </Link>
+            <Link
               href="/team/report"
               className="rounded-full border border-slate-700 px-4 py-2 transition hover:border-slate-500"
             >

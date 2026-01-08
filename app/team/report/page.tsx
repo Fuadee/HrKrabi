@@ -93,6 +93,7 @@ export default function TeamReportPage() {
         .from("workers")
         .select("id, full_name, status")
         .eq("team_id", profile.team_id)
+        .eq("status", "active")
         .order("full_name");
 
       if (!isMounted) {

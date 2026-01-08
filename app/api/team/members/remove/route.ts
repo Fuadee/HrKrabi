@@ -3,14 +3,18 @@ import { createClient } from "@supabase/supabase-js";
 
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
 
-type ReportPayload = {
-  worker_id?: string;
-  reason?: "absent" | "missing" | "quit";
-  note?: string | null;
-  last_seen_date?: string | null;
+type RemoveMemberPayload = {
+  membership_id?: string;
+  ended_reason?: "quit" | "absent_3days" | "replaced" | "other";
+  ended_note?: string | null;
 };
 
-const allowedReasons = new Set(["absent", "missing", "quit"]);
+const allowedReasons = new Set([
+  "quit",
+  "absent_3days",
+  "replaced",
+  "other",
+]);
 
 function getSupabaseAnonClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -34,6 +38,10 @@ function getSupabaseAnonClient() {
   });
 }
 
+function getTodayDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization");
@@ -53,13 +61,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const payload = (await request.json()) as ReportPayload;
-    const workerId = payload.worker_id?.trim();
-    const reason = payload.reason;
+    const payload = (await request.json()) as RemoveMemberPayload;
+    const membershipId = payload.membership_id?.trim();
+    const endedReason = payload.ended_reason;
+    const endedNote = payload.ended_note?.trim() || null;
 
-    if (!workerId || !reason || !allowedReasons.has(reason)) {
+    if (!membershipId || !endedReason || !allowedReasons.has(endedReason)) {
       return NextResponse.json(
-        { error: "Missing or invalid worker/reason." },
+        { error: "Missing or invalid membership/reason." },
         { status: 400 },
       );
     }
@@ -79,63 +88,66 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { data: worker, error: workerError } = await supabase
-      .from("workers")
-      .select("id, team_id")
-      .eq("id", workerId)
-      .single<{ id: string; team_id: string }>();
+    const { data: membership, error: membershipError } = await supabase
+      .from("team_memberships")
+      .select("id, team_id, worker_id, active")
+      .eq("id", membershipId)
+      .single<{ id: string; team_id: string; worker_id: string; active: boolean }>();
 
-    if (workerError || !worker) {
-      return NextResponse.json({ error: "Worker not found." }, { status: 404 });
+    if (membershipError || !membership) {
+      return NextResponse.json(
+        { error: "Membership not found." },
+        { status: 404 },
+      );
     }
 
-    if (worker.team_id !== profile.team_id) {
+    if (membership.team_id !== profile.team_id) {
       return NextResponse.json(
-        { error: "Worker is not in your team." },
+        { error: "Membership is not in your team." },
         { status: 403 },
       );
     }
 
-    const note = payload.note?.trim();
-    const lastSeenDate = payload.last_seen_date || null;
-
-    const { data: membership, error: membershipError } = await supabase
-      .from("team_memberships")
-      .select("id")
-      .eq("team_id", profile.team_id)
-      .eq("worker_id", workerId)
-      .eq("active", true)
-      .maybeSingle<{ id: string }>();
-
-    if (membershipError) {
+    if (!membership.active) {
       return NextResponse.json(
-        { error: membershipError.message },
-        { status: 500 },
+        { error: "Membership is already inactive." },
+        { status: 400 },
       );
     }
 
-    const { data: createdCase, error: insertError } = await supabase
-      .from("absence_cases")
-      .insert({
-        team_id: profile.team_id,
-        worker_id: workerId,
-        membership_id: membership?.id ?? null,
-        reported_by: userData.user.id,
-        reason,
-        note: note || null,
-        last_seen_date: lastSeenDate,
+    const today = getTodayDate();
+    const { data: updatedMembership, error: updateError } = await supabase
+      .from("team_memberships")
+      .update({
+        active: false,
+        end_date: today,
+        ended_reason: endedReason,
+        ended_note: endedNote,
       })
-      .select("*")
+      .eq("id", membership.id)
+      .select("id, team_id, worker_id, active, end_date, ended_reason, ended_note")
       .single();
 
-    if (insertError || !createdCase) {
+    if (updateError || !updatedMembership) {
       return NextResponse.json(
-        { error: insertError?.message ?? "Insert failed." },
+        { error: updateError?.message ?? "Failed to update membership." },
         { status: 500 },
       );
     }
 
-    return NextResponse.json({ data: createdCase });
+    const { error: workerError } = await supabase
+      .from("workers")
+      .update({ status: "inactive" })
+      .eq("id", membership.worker_id);
+
+    if (workerError) {
+      return NextResponse.json(
+        { error: workerError.message },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({ data: updatedMembership });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unexpected server error.";
