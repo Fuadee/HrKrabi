@@ -25,11 +25,32 @@ type MembershipRow = {
   workers: { full_name: string } | null;
 };
 
+type CaseRow = {
+  id: string;
+  worker_name: string;
+  reason: string;
+  note: string | null;
+  reported_at: string;
+  hr_status: string;
+  final_status: string;
+  hr_received_at: string | null;
+  sla_deadline_at: string | null;
+  recruitment_status: string;
+  recruitment_updated_at: string | null;
+  hr_swap_approved_at: string | null;
+  last_update_at: string;
+};
+
 type AddMemberResponse = {
   data?: {
     worker: { id: string; full_name: string };
     membership: { id: string; start_date: string };
   };
+  error?: string;
+};
+
+type TeamCasesResponse = {
+  data?: CaseRow[];
   error?: string;
 };
 
@@ -62,6 +83,9 @@ export default function TeamDashboardPage() {
   const [endedReason, setEndedReason] = useState("quit");
   const [endedNote, setEndedNote] = useState("");
   const [removing, setRemoving] = useState(false);
+  const [reportedCases, setReportedCases] = useState<CaseRow[]>([]);
+  const [casesLoading, setCasesLoading] = useState(false);
+  const [casesError, setCasesError] = useState<string | null>(null);
 
   const headcount = activeMembers.length;
   const missingCount = useMemo(() => {
@@ -69,9 +93,17 @@ export default function TeamDashboardPage() {
     return Math.max(0, capacity - headcount);
   }, [team?.capacity, headcount]);
 
+  const getAccessToken = async () => {
+    const supabase = getSupabaseBrowserClient();
+    const { data: sessionData } = await supabase.auth.getSession();
+    return sessionData.session?.access_token ?? null;
+  };
+
   const loadDashboard = async () => {
     setLoading(true);
     setError(null);
+    setCasesLoading(true);
+    setCasesError(null);
 
     const supabase = getSupabaseBrowserClient();
     const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -98,12 +130,14 @@ export default function TeamDashboardPage() {
     if (profile.role !== "team_lead") {
       setError("Only team leads can access the roster dashboard.");
       setLoading(false);
+      setCasesLoading(false);
       return;
     }
 
     if (!profile.team_id) {
       setError("No team assigned to your profile.");
       setLoading(false);
+      setCasesLoading(false);
       return;
     }
 
@@ -116,6 +150,7 @@ export default function TeamDashboardPage() {
     if (teamError || !teamData) {
       setError(teamError?.message ?? "Unable to load team.");
       setLoading(false);
+      setCasesLoading(false);
       return;
     }
 
@@ -129,6 +164,7 @@ export default function TeamDashboardPage() {
     if (activeError) {
       setError(activeError.message);
       setLoading(false);
+      setCasesLoading(false);
       return;
     }
 
@@ -143,9 +179,31 @@ export default function TeamDashboardPage() {
     if (inactiveError) {
       setError(inactiveError.message);
       setLoading(false);
+      setCasesLoading(false);
       return;
     }
 
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      router.replace("/login");
+      return;
+    }
+
+    const casesResponse = await fetch("/api/team/cases", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    const casesPayload = (await casesResponse.json()) as TeamCasesResponse;
+
+    if (!casesResponse.ok) {
+      setCasesError(casesPayload.error ?? "Unable to load reported cases.");
+      setReportedCases([]);
+    } else {
+      setReportedCases(casesPayload.data ?? []);
+    }
+
+    setCasesLoading(false);
     setTeam(teamData);
     setActiveMembers((activeData ?? []) as MembershipRow[]);
     setInactiveMembers((inactiveData ?? []) as MembershipRow[]);
@@ -168,10 +226,27 @@ export default function TeamDashboardPage() {
     };
   }, [router]);
 
-  const getAccessToken = async () => {
-    const supabase = getSupabaseBrowserClient();
-    const { data: sessionData } = await supabase.auth.getSession();
-    return sessionData.session?.access_token ?? null;
+  const formatDate = (value?: string | null) =>
+    value ? new Date(value).toLocaleDateString() : "-";
+  const formatDateTime = (value?: string | null) =>
+    value ? new Date(value).toLocaleString() : "-";
+
+  const formatRecruitmentStatus = (status?: string | null) => {
+    if (!status) {
+      return "Unknown";
+    }
+    if (status === "not_found") {
+      return "Not found";
+    }
+    return status.replace(/_/g, " ");
+  };
+
+  const hrStatusStyles: Record<string, string> = {
+    pending: "bg-slate-700/50 text-slate-200 border-slate-600/60",
+    received: "bg-blue-500/20 text-blue-200 border-blue-500/40",
+    in_sla: "bg-emerald-500/20 text-emerald-200 border-emerald-500/40",
+    sla_expired: "bg-amber-500/20 text-amber-200 border-amber-500/40",
+    closed: "bg-slate-500/30 text-slate-100 border-slate-500/40",
   };
 
   const handleAddMember = async () => {
@@ -467,6 +542,107 @@ export default function TeamDashboardPage() {
                   </button>
                 </div>
               ) : null}
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <h2 className="text-lg font-semibold">
+                  Reported cases (HR progress)
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Track HR status, SLA timing, and recruitment outcomes for
+                  reported absences.
+                </p>
+              </div>
+              {casesLoading ? (
+                <p className="text-sm text-slate-300">Loading cases...</p>
+              ) : null}
+              {casesError ? (
+                <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+                  {casesError}
+                </p>
+              ) : null}
+              <div className="overflow-hidden rounded-lg border border-slate-800">
+                <table className="w-full border-collapse text-sm">
+                  <thead className="bg-slate-900/60 text-slate-300">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Worker</th>
+                      <th className="px-4 py-3 text-left">Reason</th>
+                      <th className="px-4 py-3 text-left">Reported</th>
+                      <th className="px-4 py-3 text-left">HR status</th>
+                      <th className="px-4 py-3 text-left">SLA deadline</th>
+                      <th className="px-4 py-3 text-left">
+                        Recruitment outcome
+                      </th>
+                      <th className="px-4 py-3 text-left">Last update</th>
+                      <th className="px-4 py-3 text-left">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportedCases.length === 0 && !casesLoading ? (
+                      <tr>
+                        <td className="px-4 py-4 text-slate-400" colSpan={8}>
+                          No reported cases yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      reportedCases.map((caseItem) => (
+                        <tr
+                          key={caseItem.id}
+                          className="border-t border-slate-800 text-slate-200"
+                        >
+                          <td className="px-4 py-3">
+                            {caseItem.worker_name}
+                          </td>
+                          <td className="px-4 py-3 capitalize">
+                            {caseItem.reason}
+                          </td>
+                          <td className="px-4 py-3">
+                            {formatDateTime(caseItem.reported_at)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${
+                                hrStatusStyles[caseItem.hr_status] ??
+                                "border-slate-600/60 bg-slate-700/50 text-slate-200"
+                              }`}
+                            >
+                              {caseItem.hr_status.replace(/_/g, " ")}
+                            </span>
+                            <p className="mt-1 text-xs text-slate-400">
+                              Final:{" "}
+                              {caseItem.final_status.replace(/_/g, " ")}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3">
+                            {formatDate(caseItem.sla_deadline_at)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="capitalize">
+                              {formatRecruitmentStatus(
+                                caseItem.recruitment_status,
+                              )}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              {caseItem.recruitment_updated_at
+                                ? `Updated ${formatDateTime(
+                                    caseItem.recruitment_updated_at,
+                                  )}`
+                                : "No update yet"}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3">
+                            {formatDateTime(caseItem.last_update_at)}
+                          </td>
+                          <td className="px-4 py-3 text-slate-300">
+                            {caseItem.note || "-"}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <div className="space-y-3">

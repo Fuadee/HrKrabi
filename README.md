@@ -90,3 +90,4 @@ SLA logic: the API calculates `sla_deadline_at` as three business days (excludin
    - Adding a member creates a worker and an active membership.
    - Removing a member sets the membership inactive (with reason) and marks the worker status as inactive.
 4. Current headcount on the dashboard is based on active memberships (inactive memberships do not count).
+5. Team leads can monitor HR progress for reported cases directly from the dashboard.
