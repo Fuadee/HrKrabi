@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { getSession, login } from "@/lib/auth";
+import { getDefaultRouteForRole, getProfileRole } from "@/lib/roleRedirect";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 
 export default function LoginPage() {
@@ -13,16 +14,30 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     const checkSession = async () => {
       const session = await getSession();
       if (session.isAuthenticated) {
-        router.replace("/team-dashboard");
+        const role = await getProfileRole();
+        const target = getDefaultRouteForRole(role);
+        router.replace(target);
+        return;
+      }
+
+      if (isMounted) {
+        setCheckingSession(false);
       }
     };
 
     checkSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, [router]);
 
   const handleSignIn = async () => {
@@ -39,7 +54,10 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    router.push("/team-dashboard");
+
+    const role = await getProfileRole();
+    const target = getDefaultRouteForRole(role);
+    router.replace(target);
   };
 
   const handleSignUp = async () => {
@@ -59,13 +77,23 @@ export default function LoginPage() {
     }
 
     if (data.session) {
-      router.push("/team-dashboard");
+      const role = await getProfileRole(data.user?.id ?? null);
+      const target = getDefaultRouteForRole(role);
+      router.replace(target);
       return;
     }
 
     setStatus("Check your email to confirm your account.");
     setLoading(false);
   };
+
+  if (checkingSession) {
+    return (
+      <main className="flex min-h-screen items-center justify-center text-sm text-slate-400">
+        Checking your session...
+      </main>
+    );
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-white">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 import { getSession, logout } from "@/lib/auth";
+import { getDefaultRouteForRole, getProfileRole } from "@/lib/roleRedirect";
 
 type NavItem = {
   label: string;
@@ -12,17 +13,45 @@ type NavItem = {
   match?: string[];
 };
 
-const navItems: NavItem[] = [
-  { label: "Dev health", href: "/dev-health", match: ["/dev/health"] },
+const devHealthItem: NavItem = {
+  label: "Dev health",
+  href: "/dev-health",
+  match: ["/dev-health", "/dev/health"],
+};
+
+const myProfileItem: NavItem = {
+  label: "My profile",
+  href: "/my-profile",
+  match: ["/my-profile", "/me"],
+};
+
+const teamLeadNavItems: NavItem[] = [
+  devHealthItem,
   {
     label: "Team dashboard",
     href: "/team-dashboard",
-    match: ["/team/dashboard"],
+    match: ["/team-dashboard", "/team/dashboard"],
   },
-  { label: "Report absence", href: "/report-absence", match: ["/team/report"] },
-  { label: "Team cases", href: "/team-cases", match: ["/team/cases"] },
-  { label: "My profile", href: "/my-profile", match: ["/me"] },
+  {
+    label: "Report absence",
+    href: "/report-absence",
+    match: ["/report-absence", "/team/report"],
+  },
+  {
+    label: "Team cases",
+    href: "/team-cases",
+    match: ["/team-cases", "/team/cases"],
+  },
+  myProfileItem,
 ];
+
+const hrNavItems: NavItem[] = [
+  devHealthItem,
+  { label: "HR dashboard", href: "/hr/dashboard", match: ["/hr/dashboard"] },
+  myProfileItem,
+];
+
+const defaultNavItems: NavItem[] = [devHealthItem, myProfileItem];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -30,6 +59,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userLabel, setUserLabel] = useState("User");
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -38,6 +68,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       const session = await getSession();
       if (isMounted && session.user) {
         setUserLabel(session.user.name || session.user.email || "User");
+      }
+
+      const profileRole = await getProfileRole();
+      if (isMounted) {
+        setRole(profileRole);
       }
     };
 
@@ -61,6 +96,20 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     router.replace("/login");
   };
 
+  const navItems = useMemo(() => {
+    if (role === "team_lead") {
+      return teamLeadNavItems;
+    }
+
+    if (role === "hr_prov") {
+      return hrNavItems;
+    }
+
+    return defaultNavItems;
+  }, [role]);
+
+  const homeHref = getDefaultRouteForRole(role);
+
   return (
     // UI shell only; business logic untouched.
     <div className="flex min-h-screen flex-col bg-slate-950 text-white">
@@ -74,7 +123,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           >
             <span className="text-lg">☰</span>
           </button>
-          <Link href="/team-dashboard" className="text-lg font-semibold">
+          <Link href={homeHref} className="text-lg font-semibold">
             Workforce Replacement Tracker
           </Link>
         </div>
@@ -118,9 +167,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         >
           <nav className="space-y-2">
             {navItems.map((item) => {
-              const isActive =
-                pathname === item.href ||
-                item.match?.some((matchPath) => pathname === matchPath);
+              const matches = item.match ?? [item.href];
+              const isActive = matches.some((matchPath) => pathname === matchPath);
               return (
                 <Link
                   key={item.href}
