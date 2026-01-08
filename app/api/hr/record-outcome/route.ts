@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-import { calculateBusinessDeadline } from "@/lib/businessDays";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
 
-type ReceivePayload = {
-  case_id?: string;
+type OutcomePayload = {
+  caseId?: string;
+  outcome?: "found" | "not_found";
+  replacement_worker_name?: string;
+  replacement_start_date?: string;
 };
+
+const allowedOutcomes = new Set(["found", "not_found"]);
 
 function getSupabaseAnonClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -49,14 +53,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const payload = (await request.json()) as ReceivePayload;
-    const caseId = payload.case_id?.trim();
+    const payload = (await request.json()) as OutcomePayload;
+    const caseId = payload.caseId?.trim();
+    const outcome = payload.outcome;
 
-    if (!caseId) {
+    if (!caseId || !outcome || !allowedOutcomes.has(outcome)) {
       return NextResponse.json(
-        { error: "Missing absence case id." },
+        { error: "Missing or invalid outcome data." },
         { status: 400 },
       );
+    }
+
+    if (outcome === "found") {
+      if (!payload.replacement_worker_name?.trim()) {
+        return NextResponse.json(
+          { error: "Replacement worker name is required." },
+          { status: 400 },
+        );
+      }
+
+      if (!payload.replacement_start_date) {
+        return NextResponse.json(
+          { error: "Replacement start date is required." },
+          { status: 400 },
+        );
+      }
     }
 
     const supabase = getSupabaseServerClient();
@@ -76,32 +97,34 @@ export async function POST(request: NextRequest) {
 
     const { data: caseRow, error: caseError } = await supabase
       .from("absence_cases")
-      .select("id, hr_status")
+      .select("id, final_status")
       .eq("id", caseId)
-      .single<{ id: string; hr_status: string }>();
+      .single<{ id: string; final_status: string }>();
 
     if (caseError || !caseRow) {
       return NextResponse.json({ error: "Case not found." }, { status: 404 });
     }
 
-    if (caseRow.hr_status !== "pending") {
+    if (caseRow.final_status !== "open") {
       return NextResponse.json(
-        { error: "Case is already in progress." },
+        { error: "Case is already finalized." },
         { status: 400 },
       );
     }
 
-    const now = new Date();
-    const deadline = calculateBusinessDeadline(now, 3);
+    const now = new Date().toISOString();
+    const updates = {
+      recruitment_status: outcome,
+      recruitment_updated_at: now,
+      replacement_worker_name:
+        outcome === "found" ? payload.replacement_worker_name?.trim() : null,
+      replacement_start_date:
+        outcome === "found" ? payload.replacement_start_date : null,
+    };
 
     const { data: updatedCase, error: updateError } = await supabase
       .from("absence_cases")
-      .update({
-        hr_received_at: now.toISOString(),
-        sla_deadline_at: deadline,
-        hr_status: "in_sla",
-        document_sent: true,
-      })
+      .update(updates)
       .eq("id", caseId)
       .select(
         "id, reason, reported_at, hr_status, sla_deadline_at, recruitment_status, replacement_worker_name, replacement_start_date, final_status, teams(name), workers(full_name)",
