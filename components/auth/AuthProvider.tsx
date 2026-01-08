@@ -196,6 +196,13 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       if (sessionError) {
         throw sessionError;
       }
+      if (process.env.NODE_ENV !== "production") {
+        // eslint-disable-next-line no-console
+        console.debug("[auth] session", {
+          hasSession: Boolean(sessionData.session),
+          hasAccessToken: Boolean(sessionData.session?.access_token),
+        });
+      }
       if (!sessionData.session?.user) {
         setUnauthed();
         return;
@@ -228,11 +235,19 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
     bootstrap();
 
-    const { data } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) {
         return;
       }
       try {
+        if (process.env.NODE_ENV !== "production") {
+          // eslint-disable-next-line no-console
+          console.debug("[auth] event", {
+            event,
+            hasSession: Boolean(session),
+            hasAccessToken: Boolean(session?.access_token),
+          });
+        }
         if (session?.user) {
           if (process.env.NODE_ENV !== "production") {
             // eslint-disable-next-line no-console
@@ -272,25 +287,6 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line no-console
     console.debug("[auth] status", { status, pathname });
   }, [pathname, status]);
-
-  useEffect(() => {
-    if (status !== "loading") {
-      return;
-    }
-    const timeout = window.setTimeout(() => {
-      if (statusRef.current !== "loading") {
-        return;
-      }
-      debugLog("[auth] timeout", { pathname });
-      clearLocalToken();
-      setUnauthed();
-      safeReplace("/login");
-    }, 5000);
-
-    return () => {
-      window.clearTimeout(timeout);
-    };
-  }, [clearLocalToken, debugLog, pathname, safeReplace, setUnauthed, status]);
 
   const logout = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
