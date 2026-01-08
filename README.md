@@ -82,3 +82,11 @@ SLA logic: the API calculates `sla_deadline_at` as three business days (excludin
    - "Record Not Found" stores the outcome.
 4. If a replacement is found within the SLA, click "Approve Swap" to close the case.
 5. If no replacement is found and the SLA has expired, click "Mark Vacant" to start a vacancy period the day after the SLA deadline.
+
+## Step 7: Team workforce dashboard + roster control
+1. Apply the SQL in `sql/step7_ops_memberships.sql` to create `team_memberships` and link them to absence cases.
+2. Run the app and, as a team lead, open `/team/dashboard`.
+3. Use the dashboard to add or remove active team members without HR involvement.
+   - Adding a member creates a worker and an active membership.
+   - Removing a member sets the membership inactive (with reason) and marks the worker status as inactive.
+4. Current headcount on the dashboard is based on active memberships (inactive memberships do not count).

@@ -3,14 +3,10 @@ import { createClient } from "@supabase/supabase-js";
 
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
 
-type ReportPayload = {
-  worker_id?: string;
-  reason?: "absent" | "missing" | "quit";
-  note?: string | null;
-  last_seen_date?: string | null;
+type AddMemberPayload = {
+  full_name?: string;
+  national_id?: string | null;
 };
-
-const allowedReasons = new Set(["absent", "missing", "quit"]);
 
 function getSupabaseAnonClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -53,13 +49,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const payload = (await request.json()) as ReportPayload;
-    const workerId = payload.worker_id?.trim();
-    const reason = payload.reason;
+    const payload = (await request.json()) as AddMemberPayload;
+    const fullName = payload.full_name?.trim();
+    const nationalId = payload.national_id?.trim() || null;
 
-    if (!workerId || !reason || !allowedReasons.has(reason)) {
+    if (!fullName) {
       return NextResponse.json(
-        { error: "Missing or invalid worker/reason." },
+        { error: "Full name is required." },
         { status: 400 },
       );
     }
@@ -81,61 +77,40 @@ export async function POST(request: NextRequest) {
 
     const { data: worker, error: workerError } = await supabase
       .from("workers")
-      .select("id, team_id")
-      .eq("id", workerId)
-      .single<{ id: string; team_id: string }>();
+      .insert({
+        team_id: profile.team_id,
+        full_name: fullName,
+        national_id: nationalId,
+        status: "active",
+      })
+      .select("id, team_id, full_name, national_id, status")
+      .single();
 
     if (workerError || !worker) {
-      return NextResponse.json({ error: "Worker not found." }, { status: 404 });
-    }
-
-    if (worker.team_id !== profile.team_id) {
       return NextResponse.json(
-        { error: "Worker is not in your team." },
-        { status: 403 },
+        { error: workerError?.message ?? "Failed to create worker." },
+        { status: 500 },
       );
     }
-
-    const note = payload.note?.trim();
-    const lastSeenDate = payload.last_seen_date || null;
 
     const { data: membership, error: membershipError } = await supabase
       .from("team_memberships")
-      .select("id")
-      .eq("team_id", profile.team_id)
-      .eq("worker_id", workerId)
-      .eq("active", true)
-      .maybeSingle<{ id: string }>();
-
-    if (membershipError) {
-      return NextResponse.json(
-        { error: membershipError.message },
-        { status: 500 },
-      );
-    }
-
-    const { data: createdCase, error: insertError } = await supabase
-      .from("absence_cases")
       .insert({
         team_id: profile.team_id,
-        worker_id: workerId,
-        membership_id: membership?.id ?? null,
-        reported_by: userData.user.id,
-        reason,
-        note: note || null,
-        last_seen_date: lastSeenDate,
+        worker_id: worker.id,
+        active: true,
       })
-      .select("*")
+      .select("id, team_id, worker_id, active, start_date")
       .single();
 
-    if (insertError || !createdCase) {
+    if (membershipError || !membership) {
       return NextResponse.json(
-        { error: insertError?.message ?? "Insert failed." },
+        { error: membershipError?.message ?? "Failed to create membership." },
         { status: 500 },
       );
     }
 
-    return NextResponse.json({ data: createdCase });
+    return NextResponse.json({ data: { worker, membership } });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unexpected server error.";

@@ -11,6 +11,9 @@ type Profile = {
 
 type CaseRow = {
   id: string;
+  team_id: string;
+  worker_id: string;
+  membership_id: string | null;
   reason: string;
   reported_at: string;
   hr_status: string;
@@ -21,6 +24,8 @@ type CaseRow = {
   final_status: string;
   teams: { name: string } | null;
   workers: { full_name: string } | null;
+  team_memberships: { active: boolean } | null;
+  removedFromTeam?: boolean;
 };
 
 type CaseResponse = {
@@ -139,7 +144,7 @@ export default function HrDashboardPage() {
       const { data: casesData, error: casesError } = await supabase
         .from("absence_cases")
         .select(
-          "id, reason, reported_at, hr_status, sla_deadline_at, recruitment_status, replacement_worker_name, replacement_start_date, final_status, teams(name), workers(full_name)",
+          "id, team_id, worker_id, membership_id, reason, reported_at, hr_status, sla_deadline_at, recruitment_status, replacement_worker_name, replacement_start_date, final_status, teams(name), workers(full_name), team_memberships(active)",
         )
         .order("reported_at", { ascending: false })
         .limit(50);
@@ -154,7 +159,52 @@ export default function HrDashboardPage() {
         return;
       }
 
-      setCases((casesData ?? []) as CaseRow[]);
+      const caseRows = (casesData ?? []) as CaseRow[];
+      const missingMembershipCases = caseRows.filter(
+        (caseItem) => !caseItem.membership_id,
+      );
+      const workerIds = Array.from(
+        new Set(missingMembershipCases.map((caseItem) => caseItem.worker_id)),
+      );
+      const teamIds = Array.from(
+        new Set(missingMembershipCases.map((caseItem) => caseItem.team_id)),
+      );
+      const activeMembershipLookup = new Set<string>();
+
+      if (workerIds.length > 0 && teamIds.length > 0) {
+        const { data: membershipData, error: membershipError } = await supabase
+          .from("team_memberships")
+          .select("team_id, worker_id")
+          .eq("active", true)
+          .in("worker_id", workerIds)
+          .in("team_id", teamIds);
+
+        if (membershipError) {
+          setError(membershipError.message);
+          setLoading(false);
+          return;
+        }
+
+        membershipData?.forEach((membership) => {
+          activeMembershipLookup.add(
+            `${membership.team_id}-${membership.worker_id}`,
+          );
+        });
+      }
+
+      const normalizedCases = caseRows.map((caseItem) => {
+        const key = `${caseItem.team_id}-${caseItem.worker_id}`;
+        const hasActiveMembership = caseItem.membership_id
+          ? caseItem.team_memberships?.active ?? false
+          : activeMembershipLookup.has(key);
+
+        return {
+          ...caseItem,
+          removedFromTeam: !hasActiveMembership,
+        };
+      });
+
+      setCases(normalizedCases);
       setLoading(false);
     };
 
@@ -445,7 +495,14 @@ export default function HrDashboardPage() {
                             {caseItem.teams?.name ?? "-"}
                           </td>
                           <td className="px-4 py-3">
-                            {caseItem.workers?.full_name ?? "-"}
+                            <div className="flex flex-col gap-1">
+                              <span>{caseItem.workers?.full_name ?? "-"}</span>
+                              {caseItem.removedFromTeam ? (
+                                <span className="inline-flex w-fit items-center rounded-full border border-rose-400/50 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-rose-200">
+                                  Removed from team
+                                </span>
+                              ) : null}
+                            </div>
                           </td>
                           <td className="px-4 py-3 capitalize">
                             {caseItem.reason}
