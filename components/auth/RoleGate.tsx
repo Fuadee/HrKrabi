@@ -34,7 +34,7 @@ export default function RoleGate({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (!role || role === "unknown") {
+    if (!role) {
       if (pathname !== "/my-profile" && pathname !== "/me") {
         setRoleNotice("Role not assigned.");
         if (redirectRef.current.target !== "/my-profile") {

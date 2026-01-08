@@ -3,12 +3,12 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
-import { useAuth } from "@/components/auth/AuthProvider";
+import AuthProvider, { useAuth } from "@/components/auth/AuthProvider";
 import { getRoleDefaultRoute, isUserRole } from "@/lib/roleAccess";
 
 const roleNoticeKey = "role_notice";
 
-export default function IndexPage() {
+function IndexContent() {
   const router = useRouter();
   const { status, role } = useAuth();
   const redirectRef = useRef<{ target: string | null }>({ target: null });
@@ -45,5 +45,13 @@ export default function IndexPage() {
     <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">
       {status === "loading" ? "Loading..." : "Redirecting..."}
     </div>
+  );
+}
+
+export default function IndexPage() {
+  return (
+    <AuthProvider>
+      <IndexContent />
+    </AuthProvider>
   );
 }

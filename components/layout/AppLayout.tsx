@@ -35,11 +35,6 @@ const navItemsByRole: Record<UserRole, NavItem[]> = {
       href: "/my-profile",
       match: ["/my-profile", "/me"],
     },
-    {
-      label: "Dev health",
-      href: "/dev-health",
-      match: ["/dev-health", "/dev/health"],
-    },
   ],
   hr_prov: [
     {
@@ -59,20 +54,14 @@ const roleNoticeKey = "role_notice";
 
 function getNavItems(role: UserRole | null): NavItem[] {
   if (!role) {
-    return [
-      {
-        label: "My profile",
-        href: "/my-profile",
-        match: ["/my-profile", "/me"],
-      },
-    ];
+    return [];
   }
   return navItemsByRole[role] ?? [];
 }
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { role, status, name, email, logout } = useAuth();
+  const { role, status, user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -92,8 +81,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     if (status !== "authed") {
       return "User";
     }
-    return name || email || "User";
-  }, [email, name, status]);
+    return user?.email || "User";
+  }, [status, user]);
 
   const userInitial = useMemo(() => {
     const trimmed = userLabel.trim();
