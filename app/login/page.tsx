@@ -21,6 +21,10 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.debug("LOGIN_EFFECT", { authStatus, role });
+    }
     if (authStatus === "loading") {
       return;
     }
@@ -29,7 +33,7 @@ function LoginContent() {
         const target = getRoleDefaultRoute(role);
         if (process.env.NODE_ENV !== "production") {
           // eslint-disable-next-line no-console
-          console.debug("LOGIN_REDIRECT", target);
+          console.debug("LOGIN_REDIRECT_TO", target);
         }
         if (redirectRef.current.target !== target) {
           redirectRef.current.target = target;
@@ -43,7 +47,7 @@ function LoginContent() {
       if (redirectRef.current.target !== "/my-profile") {
         if (process.env.NODE_ENV !== "production") {
           // eslint-disable-next-line no-console
-          console.debug("LOGIN_REDIRECT", "/my-profile");
+          console.debug("LOGIN_REDIRECT_TO", "/my-profile");
         }
         redirectRef.current.target = "/my-profile";
         router.replace("/my-profile");
@@ -56,10 +60,20 @@ function LoginContent() {
       setError("Email and password are required.");
       return;
     }
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.debug("LOGIN_SUBMIT");
+    }
     setLoading(true);
     setError(null);
     setStatusMessage(null);
     const { ok, error: signInError, userId } = await login({ email, password });
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.debug("LOGIN_RESULT", { ok, error: signInError ?? null });
+      // eslint-disable-next-line no-console
+      console.debug("LOGIN_AFTER_AWAIT");
+    }
     if (!ok) {
       setError(signInError ?? "Unable to sign in.");
       setLoading(false);
@@ -77,7 +91,7 @@ function LoginContent() {
     }
     if (process.env.NODE_ENV !== "production") {
       // eslint-disable-next-line no-console
-      console.debug("LOGIN_REDIRECT", target);
+      console.debug("LOGIN_REDIRECT_TO", target);
     }
     if (redirectRef.current.target !== target) {
       redirectRef.current.target = target;

@@ -82,20 +82,40 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const setUnauthed = useCallback(() => {
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.debug("AUTH_STATUS_BEFORE", statusRef.current);
+    }
     setStatus("unauthed");
     setUser(null);
     setRole(null);
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.debug("AUTH_STATUS_AFTER", "unauthed");
+    }
   }, []);
 
   const setAuthed = useCallback((nextUser: AuthUser, nextRole: AuthRole) => {
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.debug("AUTH_STATUS_BEFORE", statusRef.current);
+    }
     setUser(nextUser);
     setRole(nextRole);
     setStatus("authed");
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.debug("AUTH_STATUS_AFTER", "authed");
+    }
   }, []);
 
   const loadUserRole = useCallback(
     async (supabase: ReturnType<typeof getSupabaseBrowserClient>, userId: string) => {
       try {
+        if (process.env.NODE_ENV !== "production") {
+          // eslint-disable-next-line no-console
+          console.debug("ROLE_FETCH_START");
+        }
         const { role: profileRole, error: roleError } = await fetchUserRole(
           supabase,
           userId,
@@ -110,8 +130,16 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
           console.debug("ROLE_RESULT", profileRole ?? "missing");
         }
         if (roleError) {
+          if (process.env.NODE_ENV !== "production") {
+            // eslint-disable-next-line no-console
+            console.debug("ROLE_FETCH_ERROR", roleError.message);
+          }
           setRole(null);
           return;
+        }
+        if (process.env.NODE_ENV !== "production") {
+          // eslint-disable-next-line no-console
+          console.debug("ROLE_FETCH_OK", profileRole ?? "missing");
         }
         setRole(profileRole ?? null);
       } catch (error) {
@@ -120,6 +148,13 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
           error:
             error instanceof Error ? error.message : JSON.stringify(error ?? null),
         });
+        if (process.env.NODE_ENV !== "production") {
+          // eslint-disable-next-line no-console
+          console.debug(
+            "ROLE_FETCH_ERROR",
+            error instanceof Error ? error.message : "unknown",
+          );
+        }
         setRole(null);
       }
     },
@@ -134,6 +169,13 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         error:
           error instanceof Error ? error.message : JSON.stringify(error ?? null),
       });
+      if (process.env.NODE_ENV !== "production") {
+        // eslint-disable-next-line no-console
+        console.debug(
+          "SIGNIN_ERROR",
+          error instanceof Error ? error.message : "unknown",
+        );
+      }
       clearLocalToken();
       setUnauthed();
       safeReplace("/login");
@@ -144,21 +186,33 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const resolveAuth = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
     try {
-      setStatus("loading");
-      const { data, error } = await supabase.auth.getUser();
-      if (error) {
-        throw error;
+      if (process.env.NODE_ENV !== "production") {
+        // eslint-disable-next-line no-console
+        console.debug("SIGNIN_START");
       }
-      if (!data.user) {
+      setStatus("loading");
+      const { data: sessionData, error: sessionError } =
+        await supabase.auth.getSession();
+      if (sessionError) {
+        throw sessionError;
+      }
+      if (!sessionData.session?.user) {
         setUnauthed();
         return;
       }
 
+      if (process.env.NODE_ENV !== "production") {
+        // eslint-disable-next-line no-console
+        console.debug("SIGNIN_OK", sessionData.session.user.id);
+      }
       setAuthed(
-        { id: data.user.id, email: data.user.email ?? null },
+        {
+          id: sessionData.session.user.id,
+          email: sessionData.session.user.email ?? null,
+        },
         null,
       );
-      await loadUserRole(supabase, data.user.id);
+      await loadUserRole(supabase, sessionData.session.user.id);
     } catch (error) {
       handleAuthError("resolveAuth", error);
     }
@@ -180,6 +234,12 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       }
       try {
         if (session?.user) {
+          if (process.env.NODE_ENV !== "production") {
+            // eslint-disable-next-line no-console
+            console.debug("SIGNIN_START");
+            // eslint-disable-next-line no-console
+            console.debug("SIGNIN_OK", session.user.id);
+          }
           setAuthed(
             { id: session.user.id, email: session.user.email ?? null },
             null,

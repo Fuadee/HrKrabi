@@ -20,6 +20,10 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   }, [pathname]);
 
   useEffect(() => {
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.debug("PROTECTED_ROUTE_CHECK", { pathname, status });
+    }
     if (status === "unauthed") {
       if (pathname !== "/login" && redirectRef.current.target !== "/login") {
         redirectRef.current.target = "/login";
