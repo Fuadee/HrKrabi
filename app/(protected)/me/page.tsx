@@ -56,28 +56,28 @@ export default function MePage() {
   }, [router]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-white">
-      <div className="w-full max-w-md space-y-4 rounded-xl border border-slate-800 bg-slate-950/60 p-6">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-bg px-6 text-center text-text">
+      <div className="w-full max-w-md space-y-4 rounded-xl border border-border bg-surface p-6 shadow-sm shadow-black/5">
         <div>
           <h1 className="text-2xl font-semibold">Your profile</h1>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-text-muted">
             Email and role loaded from Supabase.
           </p>
         </div>
         {loading ? (
-          <p className="text-sm text-slate-300">Loading profile...</p>
+          <p className="text-sm text-text-muted">Loading profile...</p>
         ) : (
-          <div className="space-y-2 text-left text-sm text-slate-200">
+          <div className="space-y-2 text-left text-sm text-text">
             <p>
-              <span className="text-slate-400">Email:</span> {email ?? "-"}
+              <span className="text-text-muted">Email:</span> {email ?? "-"}
             </p>
             <p>
-              <span className="text-slate-400">Role:</span> {role ?? "-"}
+              <span className="text-text-muted">Role:</span> {role ?? "-"}
             </p>
           </div>
         )}
         {error ? (
-          <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+          <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             {error}
           </p>
         ) : null}

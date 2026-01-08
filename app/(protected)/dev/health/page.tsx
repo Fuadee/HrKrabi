@@ -68,8 +68,8 @@ export default function DevHealthPage() {
           {data?.queryOk ? "OK" : data?.errorSummary || "Supabase query failed"}
         </p>
       )}
-      <section className="rounded border border-slate-200 bg-slate-50 p-4">
-        <h2 className="text-sm font-semibold uppercase text-slate-500">
+      <section className="rounded border border-border bg-surface-2 p-4">
+        <h2 className="text-sm font-semibold uppercase text-text-muted">
           Raw Response
         </h2>
         <pre className="mt-2 overflow-auto text-sm">

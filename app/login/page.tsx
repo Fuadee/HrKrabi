@@ -89,50 +89,50 @@ export default function LoginPage() {
 
   if (checkingSession) {
     return (
-      <main className="flex min-h-screen items-center justify-center text-sm text-slate-400">
+      <main className="flex min-h-screen items-center justify-center bg-bg text-sm text-text-muted">
         Checking your session...
       </main>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-white">
-      <div className="w-full max-w-md space-y-4 rounded-xl border border-slate-800 bg-slate-950/60 p-6">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-bg px-6 text-center text-text">
+      <div className="w-full max-w-md space-y-4 rounded-xl border border-border bg-surface p-6 shadow-sm shadow-black/5">
         <div>
           <h1 className="text-2xl font-semibold">Sign in</h1>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-text-muted">
             Use your email and password to access your profile.
           </p>
         </div>
         <div className="space-y-3 text-left">
-          <label className="block text-sm font-medium text-slate-200">
+          <label className="block text-sm font-medium text-text">
             Email
             <input
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-white placeholder:text-slate-500 focus:border-slate-400 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-text placeholder:text-text-muted focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-ring"
               placeholder="you@example.com"
             />
           </label>
-          <label className="block text-sm font-medium text-slate-200">
+          <label className="block text-sm font-medium text-text">
             Password
             <input
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-white placeholder:text-slate-500 focus:border-slate-400 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-text placeholder:text-text-muted focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-ring"
               placeholder="••••••••"
             />
           </label>
         </div>
         {error ? (
-          <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+          <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             {error}
           </p>
         ) : null}
         {status ? (
-          <p className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
+          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
             {status}
           </p>
         ) : null}
@@ -141,7 +141,7 @@ export default function LoginPage() {
             type="button"
             onClick={handleSignIn}
             disabled={loading}
-            className="w-full rounded-md bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70"
+            className="w-full rounded-md bg-accent-purple px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-pink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
           >
             Sign in
           </button>
@@ -149,7 +149,7 @@ export default function LoginPage() {
             type="button"
             onClick={handleSignUp}
             disabled={loading}
-            className="w-full rounded-md border border-slate-700 px-4 py-2 text-sm font-semibold text-white transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-70"
+            className="w-full rounded-md border border-border bg-white px-4 py-2 text-sm font-semibold text-text transition hover:border-accent-purple hover:text-accent-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
           >
             Sign up
           </button>

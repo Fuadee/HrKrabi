@@ -37,7 +37,7 @@ export default function IndexPage() {
   }, [router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">
+    <div className="flex min-h-screen items-center justify-center bg-bg text-sm text-text-muted">
       {checkingSession ? "Checking session..." : "Redirecting..."}
     </div>
   );

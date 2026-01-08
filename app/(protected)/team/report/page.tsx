@@ -185,30 +185,30 @@ export default function TeamReportPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-white">
-      <div className="w-full max-w-xl space-y-4 rounded-xl border border-slate-800 bg-slate-950/60 p-6 text-left">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-bg px-6 text-center text-text">
+      <div className="w-full max-w-xl space-y-4 rounded-xl border border-border bg-surface p-6 text-left shadow-sm shadow-black/5">
         <div>
           <h1 className="text-2xl font-semibold">Report absence case</h1>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-text-muted">
             One-click report for missing or absent workers.
           </p>
         </div>
         {loading ? (
-          <p className="text-sm text-slate-300">Loading team data...</p>
+          <p className="text-sm text-text-muted">Loading team data...</p>
         ) : null}
         {!loading && role !== "team_lead" ? (
-          <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+          <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             {error ?? "Access restricted."}
           </p>
         ) : null}
         {!loading && role === "team_lead" ? (
           <div className="space-y-4">
-            <label className="block text-sm font-medium text-slate-200">
+            <label className="block text-sm font-medium text-text">
               Select worker
               <select
                 value={workerId}
                 onChange={(event) => setWorkerId(event.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-white focus:border-slate-400 focus:outline-none"
+                className="mt-1 w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-text focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 {sortedWorkers.length === 0 ? (
                   <option value="">No workers available</option>
@@ -221,12 +221,12 @@ export default function TeamReportPage() {
                 )}
               </select>
             </label>
-            <label className="block text-sm font-medium text-slate-200">
+            <label className="block text-sm font-medium text-text">
               Reason
               <select
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-white focus:border-slate-400 focus:outline-none"
+                className="mt-1 w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-text focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 {reasons.map((item) => (
                   <option key={item.value} value={item.value}>
@@ -235,32 +235,32 @@ export default function TeamReportPage() {
                 ))}
               </select>
             </label>
-            <label className="block text-sm font-medium text-slate-200">
+            <label className="block text-sm font-medium text-text">
               Last seen date (optional)
               <input
                 type="date"
                 value={lastSeenDate}
                 onChange={(event) => setLastSeenDate(event.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-white focus:border-slate-400 focus:outline-none"
+                className="mt-1 w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-text focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </label>
-            <label className="block text-sm font-medium text-slate-200">
+            <label className="block text-sm font-medium text-text">
               Note (optional)
               <textarea
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
                 rows={4}
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-white focus:border-slate-400 focus:outline-none"
+                className="mt-1 w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-text focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-ring"
                 placeholder="Extra context for the case"
               />
             </label>
             {error ? (
-              <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+              <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
                 {error}
               </p>
             ) : null}
             {success ? (
-              <p className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
+              <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
                 Case reported: {success.id} at {success.reported_at}
               </p>
             ) : null}
@@ -268,7 +268,7 @@ export default function TeamReportPage() {
               type="button"
               onClick={handleSubmit}
               disabled={submitting || sortedWorkers.length === 0}
-              className="w-full rounded-md bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70"
+              className="w-full rounded-md bg-accent-purple px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-pink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
             >
               {submitting ? "Reporting..." : "Report Case"}
             </button>

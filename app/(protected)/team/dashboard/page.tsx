@@ -280,15 +280,15 @@ export default function TeamDashboardPage() {
     value ? new Date(value).toLocaleString() : "-";
 
   const statusStyles: Record<string, string> = {
-    reported: "bg-slate-700/50 text-slate-200 border-slate-600/60",
-    in_sla: "bg-emerald-500/20 text-emerald-200 border-emerald-500/40",
-    sla_expired: "bg-amber-500/20 text-amber-200 border-amber-500/40",
-    not_found: "bg-rose-500/20 text-rose-200 border-rose-500/40",
-    found: "bg-sky-500/20 text-sky-200 border-sky-500/40",
-    swapped: "bg-violet-500/20 text-violet-200 border-violet-500/40",
-    vacant: "bg-orange-500/20 text-orange-200 border-orange-500/40",
-    closed: "bg-slate-500/30 text-slate-100 border-slate-500/40",
-    default: "bg-slate-700/50 text-slate-200 border-slate-600/60",
+    reported: "bg-surface-2 text-text-muted border-border",
+    in_sla: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    sla_expired: "bg-amber-50 text-amber-700 border-amber-200",
+    not_found: "bg-rose-50 text-rose-700 border-rose-200",
+    found: "bg-sky-50 text-sky-700 border-sky-200",
+    swapped: "bg-violet-50 text-violet-700 border-violet-200",
+    vacant: "bg-orange-50 text-orange-700 border-orange-200",
+    closed: "bg-surface-2 text-text-muted border-border",
+    default: "bg-surface-2 text-text-muted border-border",
   };
 
   const getCaseStatus = (caseRow?: CaseRow | null) => {
@@ -429,87 +429,87 @@ export default function TeamDashboardPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-white">
-      <div className="w-full max-w-6xl space-y-6 rounded-xl border border-slate-800 bg-slate-950/60 p-6 text-left">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-bg px-6 text-center text-text">
+      <div className="w-full max-w-6xl space-y-6 rounded-xl border border-border bg-surface p-6 text-left shadow-sm shadow-black/5">
         <div>
           <h1 className="text-2xl font-semibold">Team workforce dashboard</h1>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-text-muted">
             Manage the on-site roster and track active headcount.
           </p>
         </div>
         {loading ? (
-          <p className="text-sm text-slate-300">Loading roster...</p>
+          <p className="text-sm text-text-muted">Loading roster...</p>
         ) : null}
         {!loading && role !== "team_lead" ? (
-          <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+          <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             {error ?? "Access restricted."}
           </p>
         ) : null}
         {!loading && role === "team_lead" ? (
           <div className="space-y-6">
             {error ? (
-              <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+              <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
                 {error}
               </p>
             ) : null}
-            <div className="grid gap-4 rounded-lg border border-slate-800 bg-slate-900/40 p-4 md:grid-cols-4">
+            <div className="grid gap-4 rounded-lg border border-border bg-surface-2 p-4 md:grid-cols-4">
               <div>
-                <p className="text-xs uppercase text-slate-400">Team</p>
-                <p className="text-lg font-semibold text-white">
+                <p className="text-xs uppercase text-text-muted">Team</p>
+                <p className="text-lg font-semibold text-text">
                   {team?.name ?? "-"}
                 </p>
               </div>
               <div>
-                <p className="text-xs uppercase text-slate-400">Capacity</p>
-                <p className="text-lg font-semibold text-white">
+                <p className="text-xs uppercase text-text-muted">Capacity</p>
+                <p className="text-lg font-semibold text-text">
                   {team?.capacity ?? 0}
                 </p>
               </div>
               <div>
-                <p className="text-xs uppercase text-slate-400">
+                <p className="text-xs uppercase text-text-muted">
                   Active headcount
                 </p>
-                <p className="text-lg font-semibold text-white">{headcount}</p>
+                <p className="text-lg font-semibold text-text">{headcount}</p>
               </div>
               <div>
-                <p className="text-xs uppercase text-slate-400">Missing</p>
-                <p className="text-lg font-semibold text-white">
+                <p className="text-xs uppercase text-text-muted">Missing</p>
+                <p className="text-lg font-semibold text-text">
                   {missingCount}
                 </p>
               </div>
             </div>
 
-            <div className="grid gap-4 rounded-lg border border-slate-800 bg-slate-900/30 p-4 md:grid-cols-[2fr,1fr]">
+            <div className="grid gap-4 rounded-lg border border-border bg-surface-2 p-4 md:grid-cols-[2fr,1fr]">
               <div>
                 <h2 className="text-lg font-semibold">Add member</h2>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-text-muted">
                   Add a worker directly to the active roster.
                 </p>
               </div>
               <div className="space-y-3">
-                <label className="block text-sm text-slate-200">
+                <label className="block text-sm text-text">
                   Full name
                   <input
                     type="text"
                     value={fullName}
                     onChange={(event) => setFullName(event.target.value)}
-                    className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                    className="mt-1 w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-text focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </label>
-                <label className="block text-sm text-slate-200">
+                <label className="block text-sm text-text">
                   National ID (optional)
                   <input
                     type="text"
                     value={nationalId}
                     onChange={(event) => setNationalId(event.target.value)}
-                    className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                    className="mt-1 w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-text focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </label>
                 <button
                   type="button"
                   onClick={handleAddMember}
                   disabled={submitting || !fullName.trim()}
-                  className="w-full rounded-md bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="w-full rounded-md bg-accent-purple px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-pink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {submitting ? "Adding..." : "Add member"}
                 </button>
@@ -519,13 +519,13 @@ export default function TeamDashboardPage() {
             <div className="space-y-3">
               <h2 className="text-lg font-semibold">Active members</h2>
               {casesError ? (
-                <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+                <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
                   {casesError}
                 </p>
               ) : null}
-              <div className="overflow-hidden rounded-lg border border-slate-800">
+              <div className="overflow-hidden rounded-lg border border-border">
                 <table className="w-full border-collapse text-sm">
-                  <thead className="bg-slate-900/60 text-slate-300">
+                  <thead className="bg-surface-2 text-text-muted">
                     <tr>
                       <th className="px-4 py-3 text-left">Name</th>
                       <th className="px-4 py-3 text-left">Start date</th>
@@ -537,7 +537,7 @@ export default function TeamDashboardPage() {
                   <tbody>
                     {activeMembers.length === 0 ? (
                       <tr>
-                        <td className="px-4 py-4 text-slate-400" colSpan={5}>
+                        <td className="px-4 py-4 text-text-muted" colSpan={5}>
                           No active members.
                         </td>
                       </tr>
@@ -545,7 +545,7 @@ export default function TeamDashboardPage() {
                       activeMembers.map((member) => (
                         <tr
                           key={member.id}
-                          className="border-t border-slate-800 text-slate-200"
+                          className="border-t border-border text-text"
                         >
                           <td className="px-4 py-3">
                             {member.workers?.full_name ?? "Unknown"}
@@ -557,7 +557,7 @@ export default function TeamDashboardPage() {
                           </td>
                           <td className="px-4 py-3">
                             {casesLoading ? (
-                              <span className="text-xs text-slate-400">
+                              <span className="text-xs text-text-muted">
                                 Loading...
                               </span>
                             ) : (
@@ -577,7 +577,7 @@ export default function TeamDashboardPage() {
                           </td>
                           <td className="px-4 py-3">
                             {casesLoading ? (
-                              <span className="text-xs text-slate-400">
+                              <span className="text-xs text-text-muted">
                                 Loading...
                               </span>
                             ) : (
@@ -591,7 +591,7 @@ export default function TeamDashboardPage() {
                                   <div className="space-y-1 text-sm">
                                     <p>{formatDateTime(caseRow.last_update_at)}</p>
                                     {caseRow.sla_deadline_at ? (
-                                      <p className="text-xs text-slate-400">
+                                      <p className="text-xs text-text-muted">
                                         SLA {formatDate(caseRow.sla_deadline_at)}
                                       </p>
                                     ) : null}
@@ -608,7 +608,7 @@ export default function TeamDashboardPage() {
                                 setEndedReason("quit");
                                 setEndedNote("");
                               }}
-                              className="rounded-md border border-rose-400/60 px-3 py-2 text-xs font-semibold text-rose-100 transition hover:bg-rose-500/10"
+                              className="rounded-md border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50"
                             >
                               Remove
                             </button>
@@ -620,26 +620,26 @@ export default function TeamDashboardPage() {
                 </table>
               </div>
               {selectedRemoval ? (
-                <div className="space-y-3 rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+                <div className="space-y-3 rounded-lg border border-border bg-surface-2 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm text-slate-200">
+                    <p className="text-sm text-text">
                       Remove {selectedRemoval.workers?.full_name ?? "member"}
                     </p>
                     <button
                       type="button"
                       onClick={() => setSelectedRemoval(null)}
-                      className="text-xs text-slate-400 hover:text-slate-200"
+                      className="text-xs text-text-muted hover:text-text"
                     >
                       Cancel
                     </button>
                   </div>
                   <div className="grid gap-3 md:grid-cols-2">
-                    <label className="block text-sm text-slate-200">
+                    <label className="block text-sm text-text">
                       Reason
                       <select
                         value={endedReason}
                         onChange={(event) => setEndedReason(event.target.value)}
-                        className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                        className="mt-1 w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-text focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-ring"
                       >
                         {removalReasons.map((item) => (
                           <option key={item.value} value={item.value}>
@@ -648,13 +648,13 @@ export default function TeamDashboardPage() {
                         ))}
                       </select>
                     </label>
-                    <label className="block text-sm text-slate-200">
+                    <label className="block text-sm text-text">
                       Note (optional)
                       <input
                         type="text"
                         value={endedNote}
                         onChange={(event) => setEndedNote(event.target.value)}
-                        className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                        className="mt-1 w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-text focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-ring"
                       />
                     </label>
                   </div>
@@ -662,7 +662,7 @@ export default function TeamDashboardPage() {
                     type="button"
                     onClick={handleConfirmRemove}
                     disabled={removing}
-                    className="rounded-md bg-rose-400 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-rose-300 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="rounded-md bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {removing ? "Removing..." : "Confirm removal"}
                   </button>
@@ -674,9 +674,9 @@ export default function TeamDashboardPage() {
               <h2 className="text-lg font-semibold">
                 Inactive/Ended members (last 20)
               </h2>
-              <div className="overflow-hidden rounded-lg border border-slate-800">
+              <div className="overflow-hidden rounded-lg border border-border">
                 <table className="w-full border-collapse text-sm">
-                  <thead className="bg-slate-900/60 text-slate-300">
+                  <thead className="bg-surface-2 text-text-muted">
                     <tr>
                       <th className="px-4 py-3 text-left">Name</th>
                       <th className="px-4 py-3 text-left">End date</th>
@@ -686,7 +686,7 @@ export default function TeamDashboardPage() {
                   <tbody>
                     {inactiveMembers.length === 0 ? (
                       <tr>
-                        <td className="px-4 py-4 text-slate-400" colSpan={3}>
+                        <td className="px-4 py-4 text-text-muted" colSpan={3}>
                           No inactive members yet.
                         </td>
                       </tr>
@@ -694,7 +694,7 @@ export default function TeamDashboardPage() {
                       inactiveMembers.map((member) => (
                         <tr
                           key={member.id}
-                          className="border-t border-slate-800 text-slate-200"
+                          className="border-t border-border text-text"
                         >
                           <td className="px-4 py-3">
                             {member.workers?.full_name ?? "Unknown"}

@@ -44,7 +44,7 @@ function getSlaBadge(caseItem: CaseRow): SlaBadge {
   if (!caseItem.sla_deadline_at) {
     return {
       label: statusLabel,
-      className: "bg-slate-800 text-slate-200",
+      className: "bg-surface-2 text-text-muted border border-border",
     };
   }
 
@@ -58,20 +58,20 @@ function getSlaBadge(caseItem: CaseRow): SlaBadge {
   if (diffDays < 0 || caseItem.hr_status === "sla_expired") {
     return {
       label: statusLabel,
-      className: "bg-rose-500/20 text-rose-200 border border-rose-500/40",
+      className: "bg-rose-50 text-rose-700 border border-rose-200",
     };
   }
 
   if (diffDays <= 1) {
     return {
       label: statusLabel,
-      className: "bg-amber-500/20 text-amber-100 border border-amber-500/40",
+      className: "bg-amber-50 text-amber-700 border border-amber-200",
     };
   }
 
   return {
     label: statusLabel,
-    className: "bg-emerald-500/20 text-emerald-100 border border-emerald-500/40",
+    className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
   };
 }
 
@@ -419,33 +419,33 @@ export default function HrDashboardPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-white">
-      <div className="w-full max-w-6xl space-y-4 rounded-xl border border-slate-800 bg-slate-950/60 p-6 text-left">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-bg px-6 text-center text-text">
+      <div className="w-full max-w-6xl space-y-4 rounded-xl border border-border bg-surface p-6 text-left shadow-sm shadow-black/5">
         <div>
           <h1 className="text-2xl font-semibold">HR Province dashboard</h1>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-text-muted">
             Receive cases, record recruitment outcomes, and finalize swaps or
             vacancies.
           </p>
         </div>
         {loading ? (
-          <p className="text-sm text-slate-300">Loading cases...</p>
+          <p className="text-sm text-text-muted">Loading cases...</p>
         ) : null}
         {!loading && role !== "hr_prov" ? (
-          <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+          <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             {error ?? "Access restricted."}
           </p>
         ) : null}
         {!loading && role === "hr_prov" ? (
           <div className="space-y-3">
             {error ? (
-              <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+              <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
                 {error}
               </p>
             ) : null}
-            <div className="overflow-hidden rounded-lg border border-slate-800">
+            <div className="overflow-hidden rounded-lg border border-border">
               <table className="w-full border-collapse text-sm">
-                <thead className="bg-slate-900/60 text-slate-300">
+                <thead className="bg-surface-2 text-text-muted">
                   <tr>
                     <th className="px-4 py-3 text-left">Team</th>
                     <th className="px-4 py-3 text-left">Worker</th>
@@ -462,7 +462,7 @@ export default function HrDashboardPage() {
                 <tbody>
                   {sortedCases.length === 0 ? (
                     <tr>
-                      <td className="px-4 py-4 text-slate-400" colSpan={10}>
+                      <td className="px-4 py-4 text-text-muted" colSpan={10}>
                         No absence cases yet.
                       </td>
                     </tr>
@@ -489,7 +489,7 @@ export default function HrDashboardPage() {
                       return (
                         <tr
                           key={caseItem.id}
-                          className="border-t border-slate-800 text-slate-200"
+                          className="border-t border-border text-text"
                         >
                           <td className="px-4 py-3">
                             {caseItem.teams?.name ?? "-"}
@@ -498,7 +498,7 @@ export default function HrDashboardPage() {
                             <div className="flex flex-col gap-1">
                               <span>{caseItem.workers?.full_name ?? "-"}</span>
                               {caseItem.removedFromTeam ? (
-                                <span className="inline-flex w-fit items-center rounded-full border border-rose-400/50 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-rose-200">
+                                <span className="inline-flex w-fit items-center rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-rose-700">
                                   Removed from team
                                 </span>
                               ) : null}
@@ -536,7 +536,7 @@ export default function HrDashboardPage() {
                                   type="button"
                                   onClick={() => handleReceive(caseItem.id)}
                                   disabled={actionCaseId === caseItem.id}
-                                  className="rounded-md bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70"
+                                  className="rounded-md bg-accent-purple px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-accent-pink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
                                 >
                                   {actionCaseId === caseItem.id
                                     ? "Sending..."
@@ -546,9 +546,9 @@ export default function HrDashboardPage() {
                               {isAwaiting && isOpen ? (
                                 <>
                                   {foundCaseId === caseItem.id ? (
-                                    <div className="space-y-2 rounded-md border border-slate-800 bg-slate-900/40 p-2">
+                                    <div className="space-y-2 rounded-md border border-border bg-surface-2 p-2">
                                       <div>
-                                        <label className="text-xs text-slate-300">
+                                        <label className="text-xs text-text-muted">
                                           Replacement name
                                         </label>
                                         <input
@@ -557,11 +557,11 @@ export default function HrDashboardPage() {
                                           onChange={(event) =>
                                             setReplacementName(event.target.value)
                                           }
-                                          className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-white"
+                                          className="mt-1 w-full rounded-md border border-border bg-surface-2 px-2 py-1 text-xs text-text focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-ring"
                                         />
                                       </div>
                                       <div>
-                                        <label className="text-xs text-slate-300">
+                                        <label className="text-xs text-text-muted">
                                           Start date
                                         </label>
                                         <input
@@ -570,7 +570,7 @@ export default function HrDashboardPage() {
                                           onChange={(event) =>
                                             setReplacementStartDate(event.target.value)
                                           }
-                                          className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-white"
+                                          className="mt-1 w-full rounded-md border border-border bg-surface-2 px-2 py-1 text-xs text-text focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-ring"
                                         />
                                       </div>
                                       <div className="flex gap-2">
@@ -592,7 +592,7 @@ export default function HrDashboardPage() {
                                             handleRecordOutcome(caseItem.id, "found");
                                           }}
                                           disabled={actionCaseId === caseItem.id}
-                                          className="rounded-md bg-emerald-400 px-2 py-1 text-xs font-semibold text-slate-900 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-70"
+                                          className="rounded-md bg-emerald-500 px-2 py-1 text-xs font-semibold text-white transition hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
                                         >
                                           {actionCaseId === caseItem.id
                                             ? "Saving..."
@@ -606,7 +606,7 @@ export default function HrDashboardPage() {
                                             setReplacementStartDate("");
                                             setError(null);
                                           }}
-                                          className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-200"
+                                          className="rounded-md border border-border px-2 py-1 text-xs text-text-muted transition hover:border-accent-purple hover:text-accent-purple"
                                         >
                                           Cancel
                                         </button>
@@ -625,7 +625,7 @@ export default function HrDashboardPage() {
                                         );
                                         setError(null);
                                       }}
-                                      className="rounded-md border border-emerald-400/60 px-3 py-2 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/10"
+                                      className="rounded-md border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
                                     >
                                       Record Found
                                     </button>
@@ -634,7 +634,7 @@ export default function HrDashboardPage() {
                                     type="button"
                                     onClick={() => handleRecordOutcome(caseItem.id, "not_found")}
                                     disabled={actionCaseId === caseItem.id}
-                                    className="rounded-md border border-slate-600 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-slate-800/60 disabled:cursor-not-allowed disabled:opacity-70"
+                                    className="rounded-md border border-border px-3 py-2 text-xs font-semibold text-text-muted transition hover:border-accent-purple hover:text-accent-purple disabled:cursor-not-allowed disabled:opacity-70"
                                   >
                                     {actionCaseId === caseItem.id
                                       ? "Saving..."
@@ -647,7 +647,7 @@ export default function HrDashboardPage() {
                                   type="button"
                                   onClick={() => handleApproveSwap(caseItem.id)}
                                   disabled={actionCaseId === caseItem.id || !isWithinSla}
-                                  className="rounded-md bg-emerald-400 px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-70"
+                                  className="rounded-md bg-emerald-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
                                 >
                                   Approve Swap
                                 </button>
@@ -657,13 +657,13 @@ export default function HrDashboardPage() {
                                   type="button"
                                   onClick={() => handleMarkVacant(caseItem.id)}
                                   disabled={actionCaseId === caseItem.id}
-                                  className="rounded-md bg-amber-400 px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-70"
+                                  className="rounded-md bg-amber-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
                                 >
                                   Mark Vacant
                                 </button>
                               ) : null}
                               {!isPending && !isOpen ? (
-                                <span className="text-xs text-slate-400">
+                                <span className="text-xs text-text-muted">
                                   Finalized
                                 </span>
                               ) : null}
