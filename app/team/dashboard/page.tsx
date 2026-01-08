@@ -201,7 +201,10 @@ export default function TeamDashboardPage() {
     const casesPayload = (await casesResponse.json()) as TeamCasesResponse;
 
     if (!casesResponse.ok) {
-      setCasesError(casesPayload.error ?? "Unable to load reported cases.");
+      setCasesError(
+        casesPayload.error ??
+          "Case statuses are unavailable. The member list is still available.",
+      );
       setLatestCasesByWorker({});
     } else {
       const mapped = (casesPayload.data ?? []).reduce<Record<string, CaseRow>>(
@@ -481,6 +484,11 @@ export default function TeamDashboardPage() {
 
             <div className="space-y-3">
               <h2 className="text-lg font-semibold">Active members</h2>
+              {casesError ? (
+                <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+                  {casesError}
+                </p>
+              ) : null}
               <div className="overflow-hidden rounded-lg border border-slate-800">
                 <table className="w-full border-collapse text-sm">
                   <thead className="bg-slate-900/60 text-slate-300">
@@ -625,11 +633,6 @@ export default function TeamDashboardPage() {
                     {removing ? "Removing..." : "Confirm removal"}
                   </button>
                 </div>
-              ) : null}
-              {casesError ? (
-                <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
-                  {casesError}
-                </p>
               ) : null}
             </div>
 
