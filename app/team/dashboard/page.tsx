@@ -28,6 +28,7 @@ type MembershipRow = {
 type CaseRow = {
   id: string;
   worker_id: string;
+  reason: string;
   reported_at: string;
   hr_status: string;
   final_status: string;
@@ -36,6 +37,9 @@ type CaseRow = {
   recruitment_status: string;
   recruitment_updated_at: string | null;
   hr_swap_approved_at: string | null;
+};
+
+type LatestCaseRow = CaseRow & {
   last_update_at: string;
 };
 
@@ -82,7 +86,7 @@ export default function TeamDashboardPage() {
   const [endedNote, setEndedNote] = useState("");
   const [removing, setRemoving] = useState(false);
   const [latestCasesByWorker, setLatestCasesByWorker] = useState<
-    Record<string, CaseRow>
+    Record<string, LatestCaseRow>
   >({});
   const [casesLoading, setCasesLoading] = useState(false);
   const [casesError, setCasesError] = useState<string | null>(null);
@@ -97,6 +101,24 @@ export default function TeamDashboardPage() {
     const supabase = getSupabaseBrowserClient();
     const { data: sessionData } = await supabase.auth.getSession();
     return sessionData.session?.access_token ?? null;
+  };
+
+  const computeLastUpdateAt = (caseRow: CaseRow) => {
+    const reportedTimestamp = new Date(caseRow.reported_at).getTime();
+    const timestamps = [
+      reportedTimestamp,
+      caseRow.hr_received_at
+        ? new Date(caseRow.hr_received_at).getTime()
+        : reportedTimestamp,
+      caseRow.recruitment_updated_at
+        ? new Date(caseRow.recruitment_updated_at).getTime()
+        : reportedTimestamp,
+      caseRow.hr_swap_approved_at
+        ? new Date(caseRow.hr_swap_approved_at).getTime()
+        : reportedTimestamp,
+    ].filter((value) => !Number.isNaN(value));
+
+    return new Date(Math.max(...timestamps)).toISOString();
   };
 
   const loadDashboard = async () => {
@@ -190,34 +212,43 @@ export default function TeamDashboardPage() {
     }
 
     const workerIds = (activeData ?? []).map((member) => member.worker_id);
-    const casesResponse = await fetch(
-      `/api/team/cases?worker_ids=${workerIds.join(",")}`,
-      {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-      },
-    );
-    const casesPayload = (await casesResponse.json()) as TeamCasesResponse;
-
-    if (!casesResponse.ok) {
-      setCasesError(
-        casesPayload.error ??
-          "Case statuses are unavailable. The member list is still available.",
-      );
+    if (workerIds.length === 0) {
       setLatestCasesByWorker({});
+      setCasesLoading(false);
     } else {
-      const mapped = (casesPayload.data ?? []).reduce<Record<string, CaseRow>>(
-        (accumulator, row) => {
-          accumulator[row.worker_id] = row;
-          return accumulator;
+      const casesResponse = await fetch(
+        `/api/team/cases?worker_ids=${workerIds.join(",")}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
         },
-        {},
       );
-      setLatestCasesByWorker(mapped);
-    }
+      const casesPayload = (await casesResponse.json()) as TeamCasesResponse;
 
-    setCasesLoading(false);
+      if (!casesResponse.ok) {
+        setCasesError(
+          casesPayload.error ??
+            "Case statuses are unavailable. The member list is still available.",
+        );
+        setLatestCasesByWorker({});
+      } else {
+        const mapped = (casesPayload.data ?? []).reduce<
+          Record<string, LatestCaseRow>
+        >((accumulator, row) => {
+          if (!accumulator[row.worker_id]) {
+            accumulator[row.worker_id] = {
+              ...row,
+              last_update_at: computeLastUpdateAt(row),
+            };
+          }
+          return accumulator;
+        }, {});
+        setLatestCasesByWorker(mapped);
+      }
+
+      setCasesLoading(false);
+    }
     setTeam(teamData);
     setActiveMembers((activeData ?? []) as MembershipRow[]);
     setInactiveMembers((inactiveData ?? []) as MembershipRow[]);

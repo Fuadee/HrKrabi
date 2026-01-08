@@ -10,7 +10,6 @@ type CaseRow = {
   id: string;
   worker_id: string;
   reason: string;
-  note: string | null;
   reported_at: string;
   hr_status: string;
   final_status: string;
@@ -24,6 +23,7 @@ type CaseRow = {
 type TeamCaseResponse = {
   id: string;
   worker_id: string;
+  reason: string;
   reported_at: string;
   hr_status: string;
   final_status: string;
@@ -32,7 +32,6 @@ type TeamCaseResponse = {
   recruitment_status: string;
   recruitment_updated_at: string | null;
   hr_swap_approved_at: string | null;
-  last_update_at: string;
 };
 
 function getSupabaseAnonClient() {
@@ -80,24 +79,6 @@ function getSupabaseAuthedClient(token: string) {
       headers: { Authorization: `Bearer ${token}` },
     },
   });
-}
-
-function computeLastUpdateAt(row: CaseRow) {
-  const reportedTimestamp = new Date(row.reported_at).getTime();
-  const timestamps = [
-    reportedTimestamp,
-    row.hr_received_at
-      ? new Date(row.hr_received_at).getTime()
-      : reportedTimestamp,
-    row.recruitment_updated_at
-      ? new Date(row.recruitment_updated_at).getTime()
-      : reportedTimestamp,
-    row.hr_swap_approved_at
-      ? new Date(row.hr_swap_approved_at).getTime()
-      : reportedTimestamp,
-  ].filter((value) => !Number.isNaN(value));
-
-  return new Date(Math.max(...timestamps)).toISOString();
 }
 
 export async function GET(request: NextRequest) {
@@ -153,11 +134,10 @@ export async function GET(request: NextRequest) {
     const { data: caseRows, error: casesError } = await supabase
       .from("absence_cases")
       .select(
-        "distinct on (worker_id) id, worker_id, reported_at, hr_status, final_status, hr_received_at, sla_deadline_at, recruitment_status, recruitment_updated_at, hr_swap_approved_at",
+        "id, worker_id, reason, reported_at, hr_status, final_status, hr_received_at, sla_deadline_at, recruitment_status, recruitment_updated_at, hr_swap_approved_at",
       )
       .eq("team_id", profile.team_id)
       .in("worker_id", workerIds)
-      .order("worker_id", { ascending: true })
       .order("reported_at", { ascending: false });
 
     if (casesError) {
@@ -170,6 +150,7 @@ export async function GET(request: NextRequest) {
     const response: TeamCaseResponse[] = (caseRows ?? []).map((row) => ({
       id: row.id,
       worker_id: row.worker_id,
+      reason: row.reason,
       reported_at: row.reported_at,
       hr_status: row.hr_status,
       final_status: row.final_status,
@@ -178,7 +159,6 @@ export async function GET(request: NextRequest) {
       recruitment_status: row.recruitment_status,
       recruitment_updated_at: row.recruitment_updated_at,
       hr_swap_approved_at: row.hr_swap_approved_at,
-      last_update_at: computeLastUpdateAt(row),
     }));
 
     return NextResponse.json({ data: response });
