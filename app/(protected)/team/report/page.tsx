@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { getDefaultRouteForRole } from "@/lib/roleRedirect";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 
 type Worker = {
@@ -78,8 +79,10 @@ export default function TeamReportPage() {
       setRole(profile.role);
 
       if (profile.role !== "team_lead") {
+        const redirectTarget = getDefaultRouteForRole(profile.role);
         setError("Only team leads can report cases.");
         setLoading(false);
+        router.replace(redirectTarget);
         return;
       }
 

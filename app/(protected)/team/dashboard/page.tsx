@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { getDefaultRouteForRole } from "@/lib/roleRedirect";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 
 type Profile = {
@@ -150,9 +151,11 @@ export default function TeamDashboardPage() {
     setRole(profile.role);
 
     if (profile.role !== "team_lead") {
+      const redirectTarget = getDefaultRouteForRole(profile.role);
       setError("Only team leads can access the roster dashboard.");
       setLoading(false);
       setCasesLoading(false);
+      router.replace(redirectTarget);
       return;
     }
 
