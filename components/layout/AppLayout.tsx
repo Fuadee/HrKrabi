@@ -112,13 +112,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     // UI shell only; business logic untouched.
-    <div className="flex min-h-screen flex-col bg-slate-950 text-white">
-      <header className="flex items-center justify-between border-b border-slate-800 px-4 py-3 md:px-6">
+    <div className="flex min-h-screen flex-col bg-bg text-text">
+      <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 md:px-6">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => setSidebarOpen((open) => !open)}
-            className="inline-flex items-center justify-center rounded-md border border-slate-700 p-2 text-slate-200 md:hidden"
+            className="inline-flex items-center justify-center rounded-md border border-border p-2 text-text-muted transition hover:border-accent-purple hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden"
             aria-label="Toggle navigation"
           >
             <span className="text-lg">☰</span>
@@ -131,18 +131,18 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
-            className="flex items-center gap-2 rounded-full border border-slate-700 px-3 py-1 text-sm"
+            className="flex items-center gap-2 rounded-full border border-border px-3 py-1 text-sm text-text-muted transition hover:border-accent-purple hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-xs font-semibold">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent-purple">
               {userInitial}
             </span>
             <span className="hidden sm:block">{userLabel}</span>
           </button>
           {menuOpen ? (
-            <div className="absolute right-0 mt-2 w-44 rounded-md border border-slate-800 bg-slate-900 shadow-lg">
+            <div className="absolute right-0 mt-2 w-44 rounded-md border border-border bg-surface shadow-lg shadow-black/5">
               <Link
                 href="/my-profile"
-                className="block px-4 py-2 text-sm hover:bg-slate-800"
+                className="block px-4 py-2 text-sm text-text-muted transition hover:bg-bg-muted hover:text-text"
                 onClick={() => setMenuOpen(false)}
               >
                 My profile
@@ -150,7 +150,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="block w-full px-4 py-2 text-left text-sm hover:bg-slate-800"
+                className="block w-full px-4 py-2 text-left text-sm text-text-muted transition hover:bg-bg-muted hover:text-text"
               >
                 Logout
               </button>
@@ -161,7 +161,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       <div className="flex flex-1">
         <aside
-          className={`fixed inset-y-0 left-0 z-40 w-64 transform border-r border-slate-800 bg-slate-950/95 px-4 py-6 transition duration-200 md:static md:translate-x-0 ${
+          className={`fixed inset-y-0 left-0 z-40 w-64 transform border-r border-border bg-surface px-4 py-6 transition duration-200 md:static md:translate-x-0 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
@@ -176,12 +176,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center justify-between rounded-md px-3 py-2 text-sm transition ${
                     isActive
-                      ? "bg-slate-800 text-white"
-                      : "text-slate-300 hover:bg-slate-900 hover:text-white"
+                      ? "bg-accent-soft text-accent-purple"
+                      : "text-text-muted hover:bg-bg-muted hover:text-text"
                   }`}
                 >
                   <span>{item.label}</span>
-                  <span className="text-xs text-slate-500">›</span>
+                  <span className="text-xs text-text-muted">›</span>
                 </Link>
               );
             })}
@@ -190,7 +190,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
         <main className="flex flex-1 flex-col md:ml-0">
           <div className="flex-1 px-4 py-6 md:px-8">{children}</div>
-          <footer className="border-t border-slate-800 px-4 py-4 text-center text-sm text-slate-400">
+          <footer className="border-t border-border px-4 py-4 text-center text-sm text-text-muted">
             จัดทำโดย Chalintorn Chusukon PEA KRABI
           </footer>
         </main>

@@ -4,8 +4,20 @@
 
 :root {
   color-scheme: light;
+  --bg: #ffffff;
+  --bg-muted: #f7f7fb;
+  --surface: #ffffff;
+  --surface-2: #f3f4f6;
+  --border: #e5e7eb;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --accent-purple: #7c3aed;
+  --accent-pink: #ec4899;
+  --accent-soft: rgba(124, 58, 237, 0.1);
+  --accent-soft-pink: rgba(236, 72, 153, 0.1);
+  --ring: rgba(124, 58, 237, 0.35);
 }
 
 body {
-  @apply bg-slate-950 text-slate-100;
+  @apply bg-bg text-text;
 }

@@ -93,26 +93,26 @@ export default function TeamCasesPage() {
   }, [router]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-white">
-      <div className="w-full max-w-3xl space-y-4 rounded-xl border border-slate-800 bg-slate-950/60 p-6 text-left">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-bg px-6 text-center text-text">
+      <div className="w-full max-w-3xl space-y-4 rounded-xl border border-border bg-surface p-6 text-left shadow-sm shadow-black/5">
         <div>
           <h1 className="text-2xl font-semibold">Recent absence cases</h1>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-text-muted">
             Last 20 cases reported for your team.
           </p>
         </div>
         {loading ? (
-          <p className="text-sm text-slate-300">Loading cases...</p>
+          <p className="text-sm text-text-muted">Loading cases...</p>
         ) : null}
         {!loading && role !== "team_lead" ? (
-          <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+          <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             {error ?? "Access restricted."}
           </p>
         ) : null}
         {!loading && role === "team_lead" ? (
-          <div className="overflow-hidden rounded-lg border border-slate-800">
+          <div className="overflow-hidden rounded-lg border border-border">
             <table className="w-full border-collapse text-sm">
-              <thead className="bg-slate-900/60 text-slate-300">
+              <thead className="bg-surface-2 text-text-muted">
                 <tr>
                   <th className="px-4 py-3 text-left">Worker</th>
                   <th className="px-4 py-3 text-left">Reason</th>
@@ -124,7 +124,7 @@ export default function TeamCasesPage() {
                 {cases.length === 0 ? (
                   <tr>
                     <td
-                      className="px-4 py-4 text-slate-400"
+                      className="px-4 py-4 text-text-muted"
                       colSpan={4}
                     >
                       No cases reported yet.
@@ -134,7 +134,7 @@ export default function TeamCasesPage() {
                   cases.map((caseItem) => (
                     <tr
                       key={caseItem.id}
-                      className="border-t border-slate-800 text-slate-200"
+                      className="border-t border-border text-text"
                     >
                       <td className="px-4 py-3">
                         {caseItem.workers?.full_name ?? "Unknown"}
