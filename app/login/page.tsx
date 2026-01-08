@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { getSession, login } from "@/lib/auth";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 
 export default function LoginPage() {
@@ -13,21 +14,32 @@ export default function LoginPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    const checkSession = async () => {
+      const session = await getSession();
+      if (session.isAuthenticated) {
+        router.replace("/team-dashboard");
+      }
+    };
+
+    checkSession();
+  }, [router]);
+
   const handleSignIn = async () => {
+    if (!email || !password) {
+      setError("Email and password are required.");
+      return;
+    }
     setLoading(true);
     setError(null);
     setStatus(null);
-    const supabase = getSupabaseBrowserClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error: signInError } = await login({ email, password });
     if (signInError) {
-      setError(signInError.message);
+      setError(signInError);
       setLoading(false);
       return;
     }
-    router.push("/me");
+    router.push("/team-dashboard");
   };
 
   const handleSignUp = async () => {
@@ -47,7 +59,7 @@ export default function LoginPage() {
     }
 
     if (data.session) {
-      router.push("/me");
+      router.push("/team-dashboard");
       return;
     }
 
