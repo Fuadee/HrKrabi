@@ -30,6 +30,10 @@ export default function RoleGate({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   useEffect(() => {
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.debug("ROLE_GATE_CHECK", { pathname, role, status });
+    }
     if (status !== "authed") {
       return;
     }
