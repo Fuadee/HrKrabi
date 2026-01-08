@@ -186,7 +186,7 @@ export default function TeamReportPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-bg px-6 text-center text-text">
-      <div className="w-full max-w-xl space-y-4 rounded-xl border border-border bg-surface p-6 text-left shadow-sm shadow-black/5">
+      <div className="card-surface w-full max-w-xl space-y-4 p-6 text-left">
         <div>
           <h1 className="text-2xl font-semibold">Report absence case</h1>
           <p className="text-sm text-text-muted">
@@ -268,7 +268,7 @@ export default function TeamReportPage() {
               type="button"
               onClick={handleSubmit}
               disabled={submitting || sortedWorkers.length === 0}
-              className="w-full rounded-md bg-accent-purple px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-pink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
+              className="btn-base btn-primary w-full px-4 py-2 text-sm"
             >
               {submitting ? "Reporting..." : "Report Case"}
             </button>

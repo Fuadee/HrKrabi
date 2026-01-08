@@ -97,7 +97,7 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-bg px-6 text-center text-text">
-      <div className="w-full max-w-md space-y-4 rounded-xl border border-border bg-surface p-6 shadow-sm shadow-black/5">
+      <div className="card-surface w-full max-w-md space-y-4 p-6">
         <div>
           <h1 className="text-2xl font-semibold">Sign in</h1>
           <p className="text-sm text-text-muted">
@@ -141,7 +141,7 @@ export default function LoginPage() {
             type="button"
             onClick={handleSignIn}
             disabled={loading}
-            className="w-full rounded-md bg-accent-purple px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-pink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
+            className="btn-base btn-primary w-full px-4 py-2 text-sm"
           >
             Sign in
           </button>
@@ -149,7 +149,7 @@ export default function LoginPage() {
             type="button"
             onClick={handleSignUp}
             disabled={loading}
-            className="w-full rounded-md border border-border bg-white px-4 py-2 text-sm font-semibold text-text transition hover:border-accent-purple hover:text-accent-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
+            className="btn-base btn-secondary w-full px-4 py-2 text-sm"
           >
             Sign up
           </button>

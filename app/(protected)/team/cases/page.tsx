@@ -94,7 +94,7 @@ export default function TeamCasesPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-bg px-6 text-center text-text">
-      <div className="w-full max-w-3xl space-y-4 rounded-xl border border-border bg-surface p-6 text-left shadow-sm shadow-black/5">
+      <div className="card-surface w-full max-w-3xl space-y-4 p-6 text-left">
         <div>
           <h1 className="text-2xl font-semibold">Recent absence cases</h1>
           <p className="text-sm text-text-muted">

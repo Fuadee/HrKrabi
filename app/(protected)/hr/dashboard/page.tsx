@@ -44,7 +44,7 @@ function getSlaBadge(caseItem: CaseRow): SlaBadge {
   if (!caseItem.sla_deadline_at) {
     return {
       label: statusLabel,
-      className: "bg-surface-2 text-text-muted border border-border",
+      className: "bg-white/70 text-text-muted border border-border/70",
     };
   }
 
@@ -420,7 +420,7 @@ export default function HrDashboardPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-bg px-6 text-center text-text">
-      <div className="w-full max-w-6xl space-y-4 rounded-xl border border-border bg-surface p-6 text-left shadow-sm shadow-black/5">
+      <div className="card-surface w-full max-w-6xl space-y-4 p-6 text-left">
         <div>
           <h1 className="text-2xl font-semibold">HR Province dashboard</h1>
           <p className="text-sm text-text-muted">
@@ -536,7 +536,7 @@ export default function HrDashboardPage() {
                                   type="button"
                                   onClick={() => handleReceive(caseItem.id)}
                                   disabled={actionCaseId === caseItem.id}
-                                  className="rounded-md bg-accent-purple px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-accent-pink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
+                                  className="btn-base btn-primary px-3 py-2 text-xs"
                                 >
                                   {actionCaseId === caseItem.id
                                     ? "Sending..."
@@ -546,7 +546,7 @@ export default function HrDashboardPage() {
                               {isAwaiting && isOpen ? (
                                 <>
                                   {foundCaseId === caseItem.id ? (
-                                    <div className="space-y-2 rounded-md border border-border bg-surface-2 p-2">
+                                    <div className="space-y-2 rounded-md border border-border/70 bg-white/70 p-2 shadow-[0_8px_18px_-16px_rgba(124,58,237,0.25)]">
                                       <div>
                                         <label className="text-xs text-text-muted">
                                           Replacement name
@@ -592,7 +592,7 @@ export default function HrDashboardPage() {
                                             handleRecordOutcome(caseItem.id, "found");
                                           }}
                                           disabled={actionCaseId === caseItem.id}
-                                          className="rounded-md bg-emerald-500 px-2 py-1 text-xs font-semibold text-white transition hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
+                                          className="btn-base rounded-md bg-emerald-500 px-2 py-1 text-xs text-white hover:bg-emerald-400"
                                         >
                                           {actionCaseId === caseItem.id
                                             ? "Saving..."
@@ -606,7 +606,7 @@ export default function HrDashboardPage() {
                                             setReplacementStartDate("");
                                             setError(null);
                                           }}
-                                          className="rounded-md border border-border px-2 py-1 text-xs text-text-muted transition hover:border-accent-purple hover:text-accent-purple"
+                                          className="btn-base btn-secondary px-2 py-1 text-xs"
                                         >
                                           Cancel
                                         </button>
@@ -625,7 +625,7 @@ export default function HrDashboardPage() {
                                         );
                                         setError(null);
                                       }}
-                                      className="rounded-md border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                                      className="btn-base rounded-md border border-emerald-200 px-3 py-2 text-xs text-emerald-700 hover:bg-emerald-50"
                                     >
                                       Record Found
                                     </button>
@@ -634,7 +634,7 @@ export default function HrDashboardPage() {
                                     type="button"
                                     onClick={() => handleRecordOutcome(caseItem.id, "not_found")}
                                     disabled={actionCaseId === caseItem.id}
-                                    className="rounded-md border border-border px-3 py-2 text-xs font-semibold text-text-muted transition hover:border-accent-purple hover:text-accent-purple disabled:cursor-not-allowed disabled:opacity-70"
+                                    className="btn-base btn-secondary px-3 py-2 text-xs"
                                   >
                                     {actionCaseId === caseItem.id
                                       ? "Saving..."
@@ -647,7 +647,7 @@ export default function HrDashboardPage() {
                                   type="button"
                                   onClick={() => handleApproveSwap(caseItem.id)}
                                   disabled={actionCaseId === caseItem.id || !isWithinSla}
-                                  className="rounded-md bg-emerald-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
+                                  className="btn-base rounded-md bg-emerald-500 px-3 py-2 text-xs text-white hover:bg-emerald-400"
                                 >
                                   Approve Swap
                                 </button>
@@ -657,7 +657,7 @@ export default function HrDashboardPage() {
                                   type="button"
                                   onClick={() => handleMarkVacant(caseItem.id)}
                                   disabled={actionCaseId === caseItem.id}
-                                  className="rounded-md bg-amber-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
+                                  className="btn-base rounded-md bg-amber-500 px-3 py-2 text-xs text-white hover:bg-amber-400"
                                 >
                                   Mark Vacant
                                 </button>

@@ -280,15 +280,15 @@ export default function TeamDashboardPage() {
     value ? new Date(value).toLocaleString() : "-";
 
   const statusStyles: Record<string, string> = {
-    reported: "bg-surface-2 text-text-muted border-border",
+    reported: "bg-white/70 text-text-muted border-border/70",
     in_sla: "bg-emerald-50 text-emerald-700 border-emerald-200",
     sla_expired: "bg-amber-50 text-amber-700 border-amber-200",
     not_found: "bg-rose-50 text-rose-700 border-rose-200",
     found: "bg-sky-50 text-sky-700 border-sky-200",
     swapped: "bg-violet-50 text-violet-700 border-violet-200",
     vacant: "bg-orange-50 text-orange-700 border-orange-200",
-    closed: "bg-surface-2 text-text-muted border-border",
-    default: "bg-surface-2 text-text-muted border-border",
+    closed: "bg-white/70 text-text-muted border-border/70",
+    default: "bg-white/70 text-text-muted border-border/70",
   };
 
   const getCaseStatus = (caseRow?: CaseRow | null) => {
@@ -430,7 +430,7 @@ export default function TeamDashboardPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-bg px-6 text-center text-text">
-      <div className="w-full max-w-6xl space-y-6 rounded-xl border border-border bg-surface p-6 text-left shadow-sm shadow-black/5">
+      <div className="card-surface w-full max-w-6xl space-y-6 p-6 text-left">
         <div>
           <h1 className="text-2xl font-semibold">Team workforce dashboard</h1>
           <p className="text-sm text-text-muted">
@@ -452,7 +452,7 @@ export default function TeamDashboardPage() {
                 {error}
               </p>
             ) : null}
-            <div className="grid gap-4 rounded-lg border border-border bg-surface-2 p-4 md:grid-cols-4">
+            <div className="grid gap-4 rounded-lg border border-border/70 bg-white/70 p-4 shadow-[0_12px_24px_-20px_rgba(124,58,237,0.25)] md:grid-cols-4">
               <div>
                 <p className="text-xs uppercase text-text-muted">Team</p>
                 <p className="text-lg font-semibold text-text">
@@ -479,7 +479,7 @@ export default function TeamDashboardPage() {
               </div>
             </div>
 
-            <div className="grid gap-4 rounded-lg border border-border bg-surface-2 p-4 md:grid-cols-[2fr,1fr]">
+            <div className="grid gap-4 rounded-lg border border-border/70 bg-white/70 p-4 shadow-[0_12px_24px_-20px_rgba(124,58,237,0.25)] md:grid-cols-[2fr,1fr]">
               <div>
                 <h2 className="text-lg font-semibold">Add member</h2>
                 <p className="text-xs text-text-muted">
@@ -509,7 +509,7 @@ export default function TeamDashboardPage() {
                   type="button"
                   onClick={handleAddMember}
                   disabled={submitting || !fullName.trim()}
-                  className="w-full rounded-md bg-accent-purple px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-pink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
+                  className="btn-base btn-primary w-full px-4 py-2 text-sm"
                 >
                   {submitting ? "Adding..." : "Add member"}
                 </button>
@@ -608,7 +608,7 @@ export default function TeamDashboardPage() {
                                 setEndedReason("quit");
                                 setEndedNote("");
                               }}
-                              className="rounded-md border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50"
+                              className="btn-base rounded-md border border-rose-200 px-3 py-2 text-xs text-rose-700 hover:bg-rose-50"
                             >
                               Remove
                             </button>
@@ -620,7 +620,7 @@ export default function TeamDashboardPage() {
                 </table>
               </div>
               {selectedRemoval ? (
-                <div className="space-y-3 rounded-lg border border-border bg-surface-2 p-4">
+                <div className="space-y-3 rounded-lg border border-border/70 bg-white/70 p-4 shadow-[0_10px_20px_-18px_rgba(124,58,237,0.25)]">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm text-text">
                       Remove {selectedRemoval.workers?.full_name ?? "member"}
@@ -662,7 +662,7 @@ export default function TeamDashboardPage() {
                     type="button"
                     onClick={handleConfirmRemove}
                     disabled={removing}
-                    className="rounded-md bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
+                    className="btn-base rounded-md bg-rose-500 px-4 py-2 text-sm text-white hover:bg-rose-400"
                   >
                     {removing ? "Removing..." : "Confirm removal"}
                   </button>
