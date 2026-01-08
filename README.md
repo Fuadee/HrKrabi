@@ -66,3 +66,10 @@ where id = 'YOUR_USER_ID';
 3. Run the app and, as a team lead, use:
    - `/team/report` to report a missing/absent worker.
    - `/team/cases` to see the last 20 cases for the team.
+
+## Step 5: HR Province SLA dashboard
+1. Apply the SQL in `sql/step5_hr.sql` to extend `absence_cases` with HR tracking fields and add HR Province RLS.
+2. Run the app and, as an HR Province user, open `/hr/dashboard` to review cases.
+3. Click "Receive & Send Document" to set `hr_received_at`, mark `document_sent`, and start the 3-business-day SLA.
+
+SLA logic: the API calculates `sla_deadline_at` as three business days (excluding Saturday and Sunday) from the HR receive timestamp.

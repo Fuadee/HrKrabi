@@ -82,6 +82,14 @@ export default function HomePage() {
             </Link>
           </>
         ) : null}
+        {role === "hr_prov" ? (
+          <Link
+            href="/hr/dashboard"
+            className="rounded-full border border-slate-700 px-4 py-2 transition hover:border-slate-500"
+          >
+            HR dashboard
+          </Link>
+        ) : null}
       </nav>
     </main>
   );
