@@ -3,39 +3,37 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { getSession, login } from "@/lib/auth";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { login } from "@/lib/auth";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
-import { fetchUserRole, getRoleDefaultRoute } from "@/lib/roleAccess";
+import { getRoleDefaultRoute } from "@/lib/roleAccess";
 
 const roleNoticeKey = "role_notice";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { status: authStatus, role } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const checkSession = async () => {
-      const session = await getSession();
-      if (session.isAuthenticated) {
-        const supabase = getSupabaseBrowserClient();
-        const role = await fetchUserRole(supabase);
-        if (role) {
-          router.replace(getRoleDefaultRoute(role));
-          return;
-        }
-        if (typeof window !== "undefined") {
-          window.sessionStorage.setItem(roleNoticeKey, "Role not assigned.");
-        }
-        router.replace("/my-profile");
+    if (authStatus === "loading") {
+      return;
+    }
+    if (authStatus === "authed") {
+      if (role) {
+        router.replace(getRoleDefaultRoute(role));
+        return;
       }
-    };
-
-    checkSession();
-  }, [router]);
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem(roleNoticeKey, "Role not assigned.");
+      }
+      router.replace("/my-profile");
+    }
+  }, [authStatus, role, router]);
 
   const handleSignIn = async () => {
     if (!email || !password) {
@@ -44,29 +42,20 @@ export default function LoginPage() {
     }
     setLoading(true);
     setError(null);
-    setStatus(null);
+    setStatusMessage(null);
     const { error: signInError } = await login({ email, password });
     if (signInError) {
       setError(signInError);
       setLoading(false);
       return;
     }
-    const supabase = getSupabaseBrowserClient();
-    const role = await fetchUserRole(supabase);
-    if (role) {
-      router.push(getRoleDefaultRoute(role));
-      return;
-    }
-    if (typeof window !== "undefined") {
-      window.sessionStorage.setItem(roleNoticeKey, "Role not assigned.");
-    }
-    router.push("/my-profile");
+    setLoading(false);
   };
 
   const handleSignUp = async () => {
     setLoading(true);
     setError(null);
-    setStatus(null);
+    setStatusMessage(null);
     const supabase = getSupabaseBrowserClient();
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
@@ -80,21 +69,29 @@ export default function LoginPage() {
     }
 
     if (data.session) {
-      const role = await fetchUserRole(supabase);
-      if (role) {
-        router.push(getRoleDefaultRoute(role));
-        return;
-      }
-      if (typeof window !== "undefined") {
-        window.sessionStorage.setItem(roleNoticeKey, "Role not assigned.");
-      }
-      router.push("/my-profile");
+      setLoading(false);
       return;
     }
 
-    setStatus("Check your email to confirm your account.");
+    setStatusMessage("Check your email to confirm your account.");
     setLoading(false);
   };
+
+  if (authStatus === "loading") {
+    return (
+      <main className="flex min-h-screen items-center justify-center text-sm text-slate-500">
+        Loading...
+      </main>
+    );
+  }
+
+  if (authStatus === "authed") {
+    return (
+      <main className="flex min-h-screen items-center justify-center text-sm text-slate-500">
+        Redirecting...
+      </main>
+    );
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-white">
@@ -132,9 +129,9 @@ export default function LoginPage() {
             {error}
           </p>
         ) : null}
-        {status ? (
+        {statusMessage ? (
           <p className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
-            {status}
+            {statusMessage}
           </p>
         ) : null}
         <div className="flex flex-col gap-3">

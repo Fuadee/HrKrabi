@@ -2,10 +2,9 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
-import { useRole } from "@/components/auth/RoleGate";
-import { getSession, logout } from "@/lib/auth";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { getRoleDefaultRoute, type UserRole } from "@/lib/roleAccess";
 
 type NavItem = {
@@ -73,29 +72,10 @@ function getNavItems(role: UserRole | null): NavItem[] {
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { role } = useRole();
+  const { role, status, name, email, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [userLabel, setUserLabel] = useState("User");
   const [notice, setNotice] = useState<string | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadSession = async () => {
-      const session = await getSession();
-      if (isMounted && session.user) {
-        setUserLabel(session.user.name || session.user.email || "User");
-      }
-    };
-
-    loadSession();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -108,6 +88,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const userLabel = useMemo(() => {
+    if (status !== "authed") {
+      return "User";
+    }
+    return name || email || "User";
+  }, [email, name, status]);
+
   const userInitial = useMemo(() => {
     const trimmed = userLabel.trim();
     if (!trimmed) {
@@ -118,7 +105,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   const handleLogout = async () => {
     await logout();
-    router.replace("/login");
   };
 
   const navItems = useMemo(() => getNavItems(role), [role]);
