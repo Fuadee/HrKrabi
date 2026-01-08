@@ -3,40 +3,36 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-import { getSession } from "@/lib/auth";
-import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
-import { fetchUserRole, getRoleDefaultRoute } from "@/lib/roleAccess";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { getRoleDefaultRoute } from "@/lib/roleAccess";
 
 const roleNoticeKey = "role_notice";
 
 export default function IndexPage() {
   const router = useRouter();
+  const { status, role } = useAuth();
 
   useEffect(() => {
-    const redirect = async () => {
-      const session = await getSession();
-      if (session.isAuthenticated) {
-        const supabase = getSupabaseBrowserClient();
-        const role = await fetchUserRole(supabase);
-        if (role) {
-          router.replace(getRoleDefaultRoute(role));
-          return;
-        }
-        if (typeof window !== "undefined") {
-          window.sessionStorage.setItem(roleNoticeKey, "Role not assigned.");
-        }
-        router.replace("/my-profile");
-      } else {
-        router.replace("/login");
+    if (status === "loading") {
+      return;
+    }
+    if (status === "authed") {
+      if (role) {
+        router.replace(getRoleDefaultRoute(role));
+        return;
       }
-    };
-
-    redirect();
-  }, [router]);
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem(roleNoticeKey, "Role not assigned.");
+      }
+      router.replace("/my-profile");
+      return;
+    }
+    router.replace("/login");
+  }, [role, router, status]);
 
   return (
     <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">
-      Redirecting...
+      {status === "loading" ? "Loading..." : "Redirecting..."}
     </div>
   );
 }
