@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 
 import { getSession, login } from "@/lib/auth";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
+import { fetchUserRole, getRoleDefaultRoute } from "@/lib/roleAccess";
+
+const roleNoticeKey = "role_notice";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,7 +21,16 @@ export default function LoginPage() {
     const checkSession = async () => {
       const session = await getSession();
       if (session.isAuthenticated) {
-        router.replace("/team-dashboard");
+        const supabase = getSupabaseBrowserClient();
+        const role = await fetchUserRole(supabase);
+        if (role) {
+          router.replace(getRoleDefaultRoute(role));
+          return;
+        }
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(roleNoticeKey, "Role not assigned.");
+        }
+        router.replace("/my-profile");
       }
     };
 
@@ -39,7 +51,16 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    router.push("/team-dashboard");
+    const supabase = getSupabaseBrowserClient();
+    const role = await fetchUserRole(supabase);
+    if (role) {
+      router.push(getRoleDefaultRoute(role));
+      return;
+    }
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(roleNoticeKey, "Role not assigned.");
+    }
+    router.push("/my-profile");
   };
 
   const handleSignUp = async () => {
@@ -59,7 +80,15 @@ export default function LoginPage() {
     }
 
     if (data.session) {
-      router.push("/team-dashboard");
+      const role = await fetchUserRole(supabase);
+      if (role) {
+        router.push(getRoleDefaultRoute(role));
+        return;
+      }
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem(roleNoticeKey, "Role not assigned.");
+      }
+      router.push("/my-profile");
       return;
     }
 

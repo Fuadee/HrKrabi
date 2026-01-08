@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
+import { useRole } from "@/components/auth/RoleGate";
 import { getSession, logout } from "@/lib/auth";
+import { getRoleDefaultRoute, type UserRole } from "@/lib/roleAccess";
 
 type NavItem = {
   label: string;
@@ -12,24 +14,71 @@ type NavItem = {
   match?: string[];
 };
 
-const navItems: NavItem[] = [
-  { label: "Dev health", href: "/dev-health", match: ["/dev/health"] },
-  {
-    label: "Team dashboard",
-    href: "/team-dashboard",
-    match: ["/team/dashboard"],
-  },
-  { label: "Report absence", href: "/report-absence", match: ["/team/report"] },
-  { label: "Team cases", href: "/team-cases", match: ["/team/cases"] },
-  { label: "My profile", href: "/my-profile", match: ["/me"] },
-];
+const navItemsByRole: Record<UserRole, NavItem[]> = {
+  team_lead: [
+    {
+      label: "Team dashboard",
+      href: "/team-dashboard",
+      match: ["/team-dashboard", "/team/dashboard"],
+    },
+    {
+      label: "Report absence",
+      href: "/report-absence",
+      match: ["/report-absence", "/team/report"],
+    },
+    {
+      label: "Team cases",
+      href: "/team-cases",
+      match: ["/team-cases", "/team/cases"],
+    },
+    {
+      label: "My profile",
+      href: "/my-profile",
+      match: ["/my-profile", "/me"],
+    },
+    {
+      label: "Dev health",
+      href: "/dev-health",
+      match: ["/dev-health", "/dev/health"],
+    },
+  ],
+  hr_prov: [
+    {
+      label: "HR dashboard",
+      href: "/hr/dashboard",
+      match: ["/hr/dashboard"],
+    },
+    {
+      label: "My profile",
+      href: "/my-profile",
+      match: ["/my-profile", "/me"],
+    },
+  ],
+};
+
+const roleNoticeKey = "role_notice";
+
+function getNavItems(role: UserRole | null): NavItem[] {
+  if (!role) {
+    return [
+      {
+        label: "My profile",
+        href: "/my-profile",
+        match: ["/my-profile", "/me"],
+      },
+    ];
+  }
+  return navItemsByRole[role] ?? [];
+}
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { role } = useRole();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userLabel, setUserLabel] = useState("User");
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -48,6 +97,17 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const storedNotice = window.sessionStorage.getItem(roleNoticeKey);
+    if (storedNotice) {
+      setNotice(storedNotice);
+      window.sessionStorage.removeItem(roleNoticeKey);
+    }
+  }, []);
+
   const userInitial = useMemo(() => {
     const trimmed = userLabel.trim();
     if (!trimmed) {
@@ -60,6 +120,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     await logout();
     router.replace("/login");
   };
+
+  const navItems = useMemo(() => getNavItems(role), [role]);
+  const homeHref = useMemo(() => getRoleDefaultRoute(role), [role]);
 
   return (
     // UI shell only; business logic untouched.
@@ -74,7 +137,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           >
             <span className="text-lg">☰</span>
           </button>
-          <Link href="/team-dashboard" className="text-lg font-semibold">
+          <Link href={homeHref} className="text-lg font-semibold">
             Workforce Replacement Tracker
           </Link>
         </div>
@@ -109,6 +172,20 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           ) : null}
         </div>
       </header>
+      {notice ? (
+        <div className="border-b border-slate-800 bg-slate-900 px-4 py-2 text-sm text-slate-200 md:px-6">
+          <div className="flex items-center justify-between gap-4">
+            <span>{notice}</span>
+            <button
+              type="button"
+              onClick={() => setNotice(null)}
+              className="text-xs text-slate-400 hover:text-slate-200"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex flex-1">
         <aside
