@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-import { calculateBusinessDeadline } from "@/lib/businessDays";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
 
-type ReceivePayload = {
-  case_id?: string;
+type VacantPayload = {
+  caseId?: string;
 };
 
 function getSupabaseAnonClient() {
@@ -30,6 +29,10 @@ function getSupabaseAnonClient() {
   });
 }
 
+function formatDateOnly(date: Date) {
+  return date.toISOString().split("T")[0];
+}
+
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization");
@@ -49,8 +52,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const payload = (await request.json()) as ReceivePayload;
-    const caseId = payload.case_id?.trim();
+    const payload = (await request.json()) as VacantPayload;
+    const caseId = payload.caseId?.trim();
 
     if (!caseId) {
       return NextResponse.json(
@@ -76,31 +79,62 @@ export async function POST(request: NextRequest) {
 
     const { data: caseRow, error: caseError } = await supabase
       .from("absence_cases")
-      .select("id, hr_status")
+      .select(
+        "id, team_id, recruitment_status, final_status, sla_deadline_at",
+      )
       .eq("id", caseId)
-      .single<{ id: string; hr_status: string }>();
+      .single<{
+        id: string;
+        team_id: string;
+        recruitment_status: string;
+        final_status: string;
+        sla_deadline_at: string | null;
+      }>();
 
     if (caseError || !caseRow) {
       return NextResponse.json({ error: "Case not found." }, { status: 404 });
     }
 
-    if (caseRow.hr_status !== "pending") {
+    if (caseRow.final_status !== "open") {
       return NextResponse.json(
-        { error: "Case is already in progress." },
+        { error: "Case is already finalized." },
         { status: 400 },
       );
     }
 
-    const now = new Date();
-    const deadline = calculateBusinessDeadline(now, 3);
+    if (caseRow.recruitment_status !== "not_found") {
+      return NextResponse.json(
+        { error: "Recruitment outcome is not marked as not found." },
+        { status: 400 },
+      );
+    }
+
+    if (!caseRow.sla_deadline_at) {
+      return NextResponse.json(
+        { error: "SLA deadline is missing." },
+        { status: 400 },
+      );
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const deadline = new Date(`${caseRow.sla_deadline_at}T00:00:00`);
+
+    if (today.getTime() <= deadline.getTime()) {
+      return NextResponse.json(
+        { error: "SLA deadline has not expired yet." },
+        { status: 400 },
+      );
+    }
+
+    const startedAt = new Date(deadline);
+    startedAt.setDate(startedAt.getDate() + 1);
 
     const { data: updatedCase, error: updateError } = await supabase
       .from("absence_cases")
       .update({
-        hr_received_at: now.toISOString(),
-        sla_deadline_at: deadline,
-        hr_status: "in_sla",
-        document_sent: true,
+        final_status: "vacant",
+        hr_status: "sla_expired",
       })
       .eq("id", caseId)
       .select(
@@ -111,6 +145,21 @@ export async function POST(request: NextRequest) {
     if (updateError || !updatedCase) {
       return NextResponse.json(
         { error: updateError?.message ?? "Update failed." },
+        { status: 500 },
+      );
+    }
+
+    const { error: vacancyError } = await supabase
+      .from("vacancy_periods")
+      .insert({
+        case_id: caseId,
+        team_id: caseRow.team_id,
+        started_at: formatDateOnly(startedAt),
+      });
+
+    if (vacancyError) {
+      return NextResponse.json(
+        { error: vacancyError.message },
         { status: 500 },
       );
     }

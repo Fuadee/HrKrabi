@@ -15,11 +15,15 @@ type CaseRow = {
   reported_at: string;
   hr_status: string;
   sla_deadline_at: string | null;
+  recruitment_status: string;
+  replacement_worker_name: string | null;
+  replacement_start_date: string | null;
+  final_status: string;
   teams: { name: string } | null;
   workers: { full_name: string } | null;
 };
 
-type ReceiveResponse = {
+type CaseResponse = {
   data?: CaseRow;
   error?: string;
 };
@@ -66,6 +70,14 @@ function getSlaBadge(caseItem: CaseRow): SlaBadge {
   };
 }
 
+function formatDate(dateValue: string | null) {
+  if (!dateValue) {
+    return "-";
+  }
+
+  return new Date(`${dateValue}T00:00:00`).toLocaleDateString();
+}
+
 export default function HrDashboardPage() {
   const router = useRouter();
   const [cases, setCases] = useState<CaseRow[]>([]);
@@ -73,6 +85,9 @@ export default function HrDashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [actionCaseId, setActionCaseId] = useState<string | null>(null);
+  const [foundCaseId, setFoundCaseId] = useState<string | null>(null);
+  const [replacementName, setReplacementName] = useState("");
+  const [replacementStartDate, setReplacementStartDate] = useState("");
 
   const sortedCases = useMemo(
     () =>
@@ -124,7 +139,7 @@ export default function HrDashboardPage() {
       const { data: casesData, error: casesError } = await supabase
         .from("absence_cases")
         .select(
-          "id, reason, reported_at, hr_status, sla_deadline_at, teams(name), workers(full_name)",
+          "id, reason, reported_at, hr_status, sla_deadline_at, recruitment_status, replacement_worker_name, replacement_start_date, final_status, teams(name), workers(full_name)",
         )
         .order("reported_at", { ascending: false })
         .limit(50);
@@ -150,14 +165,26 @@ export default function HrDashboardPage() {
     };
   }, [router]);
 
+  const updateCaseRow = (updatedCase: CaseRow) => {
+    setCases((prev) =>
+      prev.map((caseItem) =>
+        caseItem.id === updatedCase.id ? updatedCase : caseItem,
+      ),
+    );
+  };
+
+  const getAccessToken = async () => {
+    const supabase = getSupabaseBrowserClient();
+    const { data: sessionData } = await supabase.auth.getSession();
+    return sessionData.session?.access_token ?? null;
+  };
+
   const handleReceive = async (caseId: string) => {
     setActionCaseId(caseId);
     setError(null);
 
     try {
-      const supabase = getSupabaseBrowserClient();
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
+      const accessToken = await getAccessToken();
 
       if (!accessToken) {
         router.replace("/login");
@@ -173,7 +200,7 @@ export default function HrDashboardPage() {
         body: JSON.stringify({ case_id: caseId }),
       });
 
-      const payload = (await response.json()) as ReceiveResponse;
+      const payload = (await response.json()) as CaseResponse;
 
       if (!response.ok) {
         setError(payload.error ?? "Failed to receive case.");
@@ -182,11 +209,152 @@ export default function HrDashboardPage() {
       }
 
       if (payload.data) {
-        setCases((prev) =>
-          prev.map((caseItem) =>
-            caseItem.id === payload.data?.id ? payload.data : caseItem,
-          ),
-        );
+        updateCaseRow(payload.data);
+      }
+
+      setActionCaseId(null);
+    } catch (actionError) {
+      setError(
+        actionError instanceof Error
+          ? actionError.message
+          : "Unexpected error.",
+      );
+      setActionCaseId(null);
+    }
+  };
+
+  const handleRecordOutcome = async (
+    caseId: string,
+    outcome: "found" | "not_found",
+  ) => {
+    setActionCaseId(caseId);
+    setError(null);
+
+    try {
+      const accessToken = await getAccessToken();
+
+      if (!accessToken) {
+        router.replace("/login");
+        return;
+      }
+
+      const response = await fetch("/api/hr/record-outcome", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          caseId,
+          outcome,
+          replacement_worker_name:
+            outcome === "found" ? replacementName.trim() : undefined,
+          replacement_start_date:
+            outcome === "found" ? replacementStartDate : undefined,
+        }),
+      });
+
+      const payload = (await response.json()) as CaseResponse;
+
+      if (!response.ok) {
+        setError(payload.error ?? "Failed to record outcome.");
+        setActionCaseId(null);
+        return;
+      }
+
+      if (payload.data) {
+        updateCaseRow(payload.data);
+      }
+
+      setFoundCaseId(null);
+      setReplacementName("");
+      setReplacementStartDate("");
+      setActionCaseId(null);
+    } catch (actionError) {
+      setError(
+        actionError instanceof Error
+          ? actionError.message
+          : "Unexpected error.",
+      );
+      setActionCaseId(null);
+    }
+  };
+
+  const handleApproveSwap = async (caseId: string) => {
+    setActionCaseId(caseId);
+    setError(null);
+
+    try {
+      const accessToken = await getAccessToken();
+
+      if (!accessToken) {
+        router.replace("/login");
+        return;
+      }
+
+      const response = await fetch("/api/hr/approve-swap", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ caseId }),
+      });
+
+      const payload = (await response.json()) as CaseResponse;
+
+      if (!response.ok) {
+        setError(payload.error ?? "Failed to approve swap.");
+        setActionCaseId(null);
+        return;
+      }
+
+      if (payload.data) {
+        updateCaseRow(payload.data);
+      }
+
+      setActionCaseId(null);
+    } catch (actionError) {
+      setError(
+        actionError instanceof Error
+          ? actionError.message
+          : "Unexpected error.",
+      );
+      setActionCaseId(null);
+    }
+  };
+
+  const handleMarkVacant = async (caseId: string) => {
+    setActionCaseId(caseId);
+    setError(null);
+
+    try {
+      const accessToken = await getAccessToken();
+
+      if (!accessToken) {
+        router.replace("/login");
+        return;
+      }
+
+      const response = await fetch("/api/hr/mark-vacant", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ caseId }),
+      });
+
+      const payload = (await response.json()) as CaseResponse;
+
+      if (!response.ok) {
+        setError(payload.error ?? "Failed to mark vacant.");
+        setActionCaseId(null);
+        return;
+      }
+
+      if (payload.data) {
+        updateCaseRow(payload.data);
       }
 
       setActionCaseId(null);
@@ -202,11 +370,12 @@ export default function HrDashboardPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-white">
-      <div className="w-full max-w-5xl space-y-4 rounded-xl border border-slate-800 bg-slate-950/60 p-6 text-left">
+      <div className="w-full max-w-6xl space-y-4 rounded-xl border border-slate-800 bg-slate-950/60 p-6 text-left">
         <div>
           <h1 className="text-2xl font-semibold">HR Province dashboard</h1>
           <p className="text-sm text-slate-400">
-            Receive reported cases and trigger the 3-business-day SLA.
+            Receive cases, record recruitment outcomes, and finalize swaps or
+            vacancies.
           </p>
         </div>
         {loading ? (
@@ -234,16 +403,16 @@ export default function HrDashboardPage() {
                     <th className="px-4 py-3 text-left">Reported</th>
                     <th className="px-4 py-3 text-left">HR status</th>
                     <th className="px-4 py-3 text-left">SLA deadline</th>
+                    <th className="px-4 py-3 text-left">Recruitment</th>
+                    <th className="px-4 py-3 text-left">Replacement</th>
+                    <th className="px-4 py-3 text-left">Start date</th>
                     <th className="px-4 py-3 text-left">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sortedCases.length === 0 ? (
                     <tr>
-                      <td
-                        className="px-4 py-4 text-slate-400"
-                        colSpan={7}
-                      >
+                      <td className="px-4 py-4 text-slate-400" colSpan={10}>
                         No absence cases yet.
                       </td>
                     </tr>
@@ -251,6 +420,21 @@ export default function HrDashboardPage() {
                     sortedCases.map((caseItem) => {
                       const badge = getSlaBadge(caseItem);
                       const isPending = caseItem.hr_status === "pending";
+                      const isAwaiting =
+                        caseItem.recruitment_status === "awaiting";
+                      const isFound = caseItem.recruitment_status === "found";
+                      const isNotFound =
+                        caseItem.recruitment_status === "not_found";
+                      const isOpen = caseItem.final_status === "open";
+                      const deadline = caseItem.sla_deadline_at
+                        ? new Date(`${caseItem.sla_deadline_at}T00:00:00`)
+                        : null;
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const isAfterSla =
+                        deadline && today.getTime() > deadline.getTime();
+                      const isWithinSla =
+                        deadline && today.getTime() <= deadline.getTime();
 
                       return (
                         <tr
@@ -277,29 +461,156 @@ export default function HrDashboardPage() {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            {caseItem.sla_deadline_at
-                              ? new Date(
-                                  `${caseItem.sla_deadline_at}T00:00:00`,
-                                ).toLocaleDateString()
-                              : "-"}
+                            {formatDate(caseItem.sla_deadline_at)}
+                          </td>
+                          <td className="px-4 py-3 capitalize">
+                            {caseItem.recruitment_status.replace(/_/g, " ")}
                           </td>
                           <td className="px-4 py-3">
-                            {isPending ? (
-                              <button
-                                type="button"
-                                onClick={() => handleReceive(caseItem.id)}
-                                disabled={actionCaseId === caseItem.id}
-                                className="rounded-md bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70"
-                              >
-                                {actionCaseId === caseItem.id
-                                  ? "Sending..."
-                                  : "Receive & Send Document"}
-                              </button>
-                            ) : (
-                              <span className="text-xs text-slate-400">
-                                Received
-                              </span>
-                            )}
+                            {caseItem.replacement_worker_name ?? "-"}
+                          </td>
+                          <td className="px-4 py-3">
+                            {formatDate(caseItem.replacement_start_date)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-col gap-2">
+                              {isPending ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleReceive(caseItem.id)}
+                                  disabled={actionCaseId === caseItem.id}
+                                  className="rounded-md bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70"
+                                >
+                                  {actionCaseId === caseItem.id
+                                    ? "Sending..."
+                                    : "Receive & Send Document"}
+                                </button>
+                              ) : null}
+                              {isAwaiting && isOpen ? (
+                                <>
+                                  {foundCaseId === caseItem.id ? (
+                                    <div className="space-y-2 rounded-md border border-slate-800 bg-slate-900/40 p-2">
+                                      <div>
+                                        <label className="text-xs text-slate-300">
+                                          Replacement name
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={replacementName}
+                                          onChange={(event) =>
+                                            setReplacementName(event.target.value)
+                                          }
+                                          className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-white"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="text-xs text-slate-300">
+                                          Start date
+                                        </label>
+                                        <input
+                                          type="date"
+                                          value={replacementStartDate}
+                                          onChange={(event) =>
+                                            setReplacementStartDate(event.target.value)
+                                          }
+                                          className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-white"
+                                        />
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            if (!replacementName.trim()) {
+                                              setError(
+                                                "Replacement worker name is required.",
+                                              );
+                                              return;
+                                            }
+                                            if (!replacementStartDate) {
+                                              setError(
+                                                "Replacement start date is required.",
+                                              );
+                                              return;
+                                            }
+                                            handleRecordOutcome(caseItem.id, "found");
+                                          }}
+                                          disabled={actionCaseId === caseItem.id}
+                                          className="rounded-md bg-emerald-400 px-2 py-1 text-xs font-semibold text-slate-900 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-70"
+                                        >
+                                          {actionCaseId === caseItem.id
+                                            ? "Saving..."
+                                            : "Save"}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setFoundCaseId(null);
+                                            setReplacementName("");
+                                            setReplacementStartDate("");
+                                            setError(null);
+                                          }}
+                                          className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-200"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setFoundCaseId(caseItem.id);
+                                        setReplacementName(
+                                          caseItem.replacement_worker_name ?? "",
+                                        );
+                                        setReplacementStartDate(
+                                          caseItem.replacement_start_date ?? "",
+                                        );
+                                        setError(null);
+                                      }}
+                                      className="rounded-md border border-emerald-400/60 px-3 py-2 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/10"
+                                    >
+                                      Record Found
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRecordOutcome(caseItem.id, "not_found")}
+                                    disabled={actionCaseId === caseItem.id}
+                                    className="rounded-md border border-slate-600 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-slate-800/60 disabled:cursor-not-allowed disabled:opacity-70"
+                                  >
+                                    {actionCaseId === caseItem.id
+                                      ? "Saving..."
+                                      : "Record Not Found"}
+                                  </button>
+                                </>
+                              ) : null}
+                              {isFound && isOpen ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleApproveSwap(caseItem.id)}
+                                  disabled={actionCaseId === caseItem.id || !isWithinSla}
+                                  className="rounded-md bg-emerald-400 px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-70"
+                                >
+                                  Approve Swap
+                                </button>
+                              ) : null}
+                              {isNotFound && isOpen && isAfterSla ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleMarkVacant(caseItem.id)}
+                                  disabled={actionCaseId === caseItem.id}
+                                  className="rounded-md bg-amber-400 px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-70"
+                                >
+                                  Mark Vacant
+                                </button>
+                              ) : null}
+                              {!isPending && !isOpen ? (
+                                <span className="text-xs text-slate-400">
+                                  Finalized
+                                </span>
+                              ) : null}
+                            </div>
                           </td>
                         </tr>
                       );

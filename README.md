@@ -73,3 +73,12 @@ where id = 'YOUR_USER_ID';
 3. Click "Receive & Send Document" to set `hr_received_at`, mark `document_sent`, and start the 3-business-day SLA.
 
 SLA logic: the API calculates `sla_deadline_at` as three business days (excluding Saturday and Sunday) from the HR receive timestamp.
+
+## Step 6: HR Province outcome tracking (no recruitment UI)
+1. Apply the SQL in `sql/step6_hr_outcome.sql` to extend `absence_cases` with recruitment outcome fields and add vacancy tracking.
+2. Run the app and, as an HR Province user, open `/hr/dashboard`.
+3. Record the outcome based on external documents:
+   - "Record Found" stores the replacement name + start date.
+   - "Record Not Found" stores the outcome.
+4. If a replacement is found within the SLA, click "Approve Swap" to close the case.
+5. If no replacement is found and the SLA has expired, click "Mark Vacant" to start a vacancy period the day after the SLA deadline.
