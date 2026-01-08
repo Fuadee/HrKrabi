@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { useAuth } from "@/components/auth/AuthProvider";
-import { getRoleDefaultRoute, type UserRole } from "@/lib/roleAccess";
+import { getRoleDefaultRoute, isUserRole, type UserRole } from "@/lib/roleAccess";
 
 type NavItem = {
   label: string;
@@ -107,8 +107,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     await logout();
   };
 
-  const navItems = useMemo(() => getNavItems(role), [role]);
-  const homeHref = useMemo(() => getRoleDefaultRoute(role), [role]);
+  const navItems = useMemo(
+    () => getNavItems(isUserRole(role) ? role : null),
+    [role],
+  );
+  const homeHref = useMemo(
+    () => getRoleDefaultRoute(isUserRole(role) ? role : null),
+    [role],
+  );
 
   return (
     // UI shell only; business logic untouched.

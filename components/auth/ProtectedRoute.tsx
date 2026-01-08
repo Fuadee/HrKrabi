@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 
@@ -11,13 +11,22 @@ type ProtectedRouteProps = {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { status } = useAuth();
+  const redirectRef = useRef<{ target: string | null }>({ target: null });
+
+  useEffect(() => {
+    redirectRef.current.target = null;
+  }, [pathname]);
 
   useEffect(() => {
     if (status === "unauthed") {
-      router.replace("/login");
+      if (pathname !== "/login" && redirectRef.current.target !== "/login") {
+        redirectRef.current.target = "/login";
+        router.replace("/login");
+      }
     }
-  }, [router, status]);
+  }, [pathname, router, status]);
 
   if (status === "loading") {
     return (
