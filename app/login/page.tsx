@@ -3,14 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { useAuth } from "@/components/auth/AuthProvider";
+import AuthProvider, { useAuth } from "@/components/auth/AuthProvider";
 import { login } from "@/lib/auth";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 import { getRoleDefaultRoute, isUserRole } from "@/lib/roleAccess";
 
 const roleNoticeKey = "role_notice";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const { status: authStatus, role } = useAuth();
   const redirectRef = useRef<{ target: string | null }>({ target: null });
@@ -162,5 +162,13 @@ export default function LoginPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <AuthProvider>
+      <LoginContent />
+    </AuthProvider>
   );
 }

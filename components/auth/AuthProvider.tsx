@@ -16,36 +16,17 @@ import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 import { fetchUserRole, type UserRole } from "@/lib/roleAccess";
 
 type AuthStatus = "loading" | "authed" | "unauthed";
-type AuthRole = UserRole | "unknown" | null;
+type AuthRole = UserRole | null;
+type AuthUser = { id: string; email: string | null } | null;
 
 type AuthContextValue = {
   status: AuthStatus;
-  userId: string | null;
-  email: string | null;
-  name: string | null;
+  user: AuthUser;
   role: AuthRole;
   logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
-function getDisplayName(user: {
-  email?: string | null;
-  user_metadata?: Record<string, unknown> | null;
-}): string | null {
-  if (user.user_metadata) {
-    const metadata = user.user_metadata as Record<string, unknown>;
-    const fullName = metadata.full_name;
-    if (typeof fullName === "string" && fullName.trim()) {
-      return fullName;
-    }
-    const name = metadata.name;
-    if (typeof name === "string" && name.trim()) {
-      return name;
-    }
-  }
-  return user.email ?? null;
-}
 
 export function useAuth() {
   const context = useContext(AuthContext);
@@ -59,10 +40,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [status, setStatus] = useState<AuthStatus>("loading");
-  const [userId, setUserId] = useState<string | null>(null);
-  const [email, setEmail] = useState<string | null>(null);
-  const [name, setName] = useState<string | null>(null);
   const [role, setRole] = useState<AuthRole>(null);
+  const [user, setUser] = useState<AuthUser>(null);
   const statusRef = useRef<AuthStatus>(status);
   const redirectRef = useRef<{ target: string | null }>({ target: null });
 
@@ -104,10 +83,14 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
   const setUnauthed = useCallback(() => {
     setStatus("unauthed");
-    setUserId(null);
-    setEmail(null);
-    setName(null);
+    setUser(null);
     setRole(null);
+  }, []);
+
+  const setAuthed = useCallback((nextUser: AuthUser, nextRole: AuthRole) => {
+    setUser(nextUser);
+    setRole(nextRole);
+    setStatus("authed");
   }, []);
 
   const handleAuthError = useCallback(
@@ -127,21 +110,17 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
   const resolveAuth = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
-    setStatus("loading");
     try {
+      setStatus("loading");
       const { data, error } = await supabase.auth.getUser();
       if (error) {
-        handleAuthError("resolveAuth.getUser", error);
-        return;
+        throw error;
       }
       if (!data.user) {
         setUnauthed();
         return;
       }
 
-      setUserId(data.user.id);
-      setEmail(data.user.email ?? null);
-      setName(getDisplayName(data.user));
       const { role: profileRole, error: roleError } = await fetchUserRole(
         supabase,
         data.user.id,
@@ -152,15 +131,16 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         error: roleError ? roleError.message : null,
       });
       if (roleError) {
-        setRole("unknown");
-      } else {
-        setRole(profileRole ?? "unknown");
+        throw roleError;
       }
-      setStatus("authed");
+      setAuthed(
+        { id: data.user.id, email: data.user.email ?? null },
+        profileRole ?? null,
+      );
     } catch (error) {
       handleAuthError("resolveAuth", error);
     }
-  }, [debugLog, handleAuthError, pathname, setUnauthed]);
+  }, [debugLog, handleAuthError, pathname, setAuthed, setUnauthed]);
 
   useEffect(() => {
     let isMounted = true;
@@ -179,9 +159,6 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       try {
         if (session?.user) {
           setStatus("loading");
-          setUserId(session.user.id);
-          setEmail(session.user.email ?? null);
-          setName(getDisplayName(session.user));
           const { role: profileRole, error: roleError } = await fetchUserRole(
             supabase,
             session.user.id,
@@ -195,11 +172,12 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
           if (roleError) {
-            setRole("unknown");
-          } else {
-            setRole(profileRole ?? "unknown");
+            throw roleError;
           }
-          setStatus("authed");
+          setAuthed(
+            { id: session.user.id, email: session.user.email ?? null },
+            profileRole ?? null,
+          );
         } else {
           setUnauthed();
         }
@@ -259,13 +237,11 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       status,
-      userId,
-      email,
-      name,
+      user,
       role,
       logout,
     }),
-    [email, logout, name, role, status, userId],
+    [logout, role, status, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
