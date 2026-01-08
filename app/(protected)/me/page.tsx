@@ -15,7 +15,6 @@ export default function MePage() {
   const [role, setRole] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -56,19 +55,6 @@ export default function MePage() {
     };
   }, [router]);
 
-  const handleLogout = async () => {
-    setLoggingOut(true);
-    setError(null);
-    const supabase = getSupabaseBrowserClient();
-    const { error: signOutError } = await supabase.auth.signOut();
-    if (signOutError) {
-      setError(signOutError.message);
-      setLoggingOut(false);
-      return;
-    }
-    router.replace("/login");
-  };
-
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-white">
       <div className="w-full max-w-md space-y-4 rounded-xl border border-slate-800 bg-slate-950/60 p-6">
@@ -95,14 +81,6 @@ export default function MePage() {
             {error}
           </p>
         ) : null}
-        <button
-          type="button"
-          onClick={handleLogout}
-          disabled={loggingOut}
-          className="w-full rounded-md border border-slate-700 px-4 py-2 text-sm font-semibold text-white transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          Log out
-        </button>
       </div>
     </main>
   );
