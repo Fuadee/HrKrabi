@@ -16,7 +16,7 @@ type CaseRow = {
   reason: string;
   status: string;
   reported_at: string;
-  workers: { full_name: string } | null;
+  workers: { full_name: string }[] | null;
 };
 
 export default function TeamCasesPage() {
@@ -137,7 +137,7 @@ export default function TeamCasesPage() {
                       className="border-t border-slate-800 text-slate-200"
                     >
                       <td className="px-4 py-3">
-                        {caseItem.workers?.full_name ?? "Unknown"}
+                        {caseItem.workers?.[0]?.full_name ?? "Unknown"}
                       </td>
                       <td className="px-4 py-3 capitalize">
                         {caseItem.reason}

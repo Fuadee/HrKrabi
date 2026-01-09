@@ -17,13 +17,19 @@ type TeamRow = {
   capacity: number;
 };
 
-type MembershipRow = {
+type ActiveMembershipRow = {
   id: string;
   worker_id: string;
   start_date: string;
-  end_date?: string | null;
-  ended_reason?: string | null;
-  workers: { full_name: string } | null;
+  workers: { full_name: string }[] | null;
+};
+
+type InactiveMembershipRow = {
+  id: string;
+  worker_id: string;
+  end_date: string | null;
+  ended_reason: string | null;
+  workers: { full_name: string }[] | null;
 };
 
 type CaseRow = {
@@ -72,17 +78,18 @@ const removalReasons = [
 export default function TeamDashboardPage() {
   const router = useRouter();
   const [team, setTeam] = useState<TeamRow | null>(null);
-  const [activeMembers, setActiveMembers] = useState<MembershipRow[]>([]);
-  const [inactiveMembers, setInactiveMembers] = useState<MembershipRow[]>([]);
+  const [activeMembers, setActiveMembers] = useState<ActiveMembershipRow[]>([]);
+  const [inactiveMembers, setInactiveMembers] = useState<
+    InactiveMembershipRow[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
   const [nationalId, setNationalId] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [selectedRemoval, setSelectedRemoval] = useState<MembershipRow | null>(
-    null,
-  );
+  const [selectedRemoval, setSelectedRemoval] =
+    useState<ActiveMembershipRow | null>(null);
   const [endedReason, setEndedReason] = useState("quit");
   const [endedNote, setEndedNote] = useState("");
   const [removing, setRemoving] = useState(false);
@@ -253,8 +260,8 @@ export default function TeamDashboardPage() {
       setCasesLoading(false);
     }
     setTeam(teamData);
-    setActiveMembers((activeData ?? []) as MembershipRow[]);
-    setInactiveMembers((inactiveData ?? []) as MembershipRow[]);
+    setActiveMembers(activeData ?? []);
+    setInactiveMembers(inactiveData ?? []);
     setLoading(false);
   };
 
@@ -373,7 +380,8 @@ export default function TeamDashboardPage() {
       return;
     }
 
-    const memberName = selectedRemoval.workers?.full_name ?? "this member";
+    const memberName =
+      selectedRemoval.workers?.[0]?.full_name ?? "this member";
     const confirmed = window.confirm(
       `Remove ${memberName} from the active roster?`,
     );
@@ -548,7 +556,7 @@ export default function TeamDashboardPage() {
                           className="border-t border-slate-800 text-slate-200"
                         >
                           <td className="px-4 py-3">
-                            {member.workers?.full_name ?? "Unknown"}
+                            {member.workers?.[0]?.full_name ?? "Unknown"}
                           </td>
                           <td className="px-4 py-3">
                             {new Date(
@@ -623,7 +631,8 @@ export default function TeamDashboardPage() {
                 <div className="space-y-3 rounded-lg border border-slate-800 bg-slate-900/40 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm text-slate-200">
-                      Remove {selectedRemoval.workers?.full_name ?? "member"}
+                      Remove{" "}
+                      {selectedRemoval.workers?.[0]?.full_name ?? "member"}
                     </p>
                     <button
                       type="button"
@@ -697,7 +706,7 @@ export default function TeamDashboardPage() {
                           className="border-t border-slate-800 text-slate-200"
                         >
                           <td className="px-4 py-3">
-                            {member.workers?.full_name ?? "Unknown"}
+                            {member.workers?.[0]?.full_name ?? "Unknown"}
                           </td>
                           <td className="px-4 py-3">
                             {member.end_date
