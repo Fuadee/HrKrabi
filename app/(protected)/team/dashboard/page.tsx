@@ -21,7 +21,7 @@ type ActiveMembershipRow = {
   id: string;
   worker_id: string;
   start_date: string;
-  workers: { full_name: string }[] | null;
+  workers: { full_name: string } | { full_name: string }[] | null;
 };
 
 type InactiveMembershipRow = {
@@ -29,7 +29,7 @@ type InactiveMembershipRow = {
   worker_id: string;
   end_date: string | null;
   ended_reason: string | null;
-  workers: { full_name: string }[] | null;
+  workers: { full_name: string } | { full_name: string }[] | null;
 };
 
 type CaseRow = {
@@ -188,7 +188,9 @@ export default function TeamDashboardPage() {
 
     const { data: activeData, error: activeError } = await supabase
       .from("team_memberships")
-      .select("id, worker_id, start_date, workers(full_name)")
+      .select(
+        "id, worker_id, start_date, workers:worker_id(id, full_name, national_id, status)",
+      )
       .eq("team_id", profile.team_id)
       .eq("active", true)
       .order("start_date", { ascending: true });
@@ -202,7 +204,9 @@ export default function TeamDashboardPage() {
 
     const { data: inactiveData, error: inactiveError } = await supabase
       .from("team_memberships")
-      .select("id, worker_id, end_date, ended_reason, workers(full_name)")
+      .select(
+        "id, worker_id, end_date, ended_reason, workers:worker_id(id, full_name, national_id, status)",
+      )
       .eq("team_id", profile.team_id)
       .eq("active", false)
       .order("end_date", { ascending: false })
@@ -285,6 +289,9 @@ export default function TeamDashboardPage() {
     value ? new Date(value).toLocaleDateString() : "-";
   const formatDateTime = (value?: string | null) =>
     value ? new Date(value).toLocaleString() : "-";
+  const getWorkerName = (
+    worker: { full_name: string } | { full_name: string }[] | null,
+  ) => (Array.isArray(worker) ? worker[0]?.full_name : worker?.full_name);
 
   const statusStyles: Record<string, string> = {
     reported: "bg-slate-700/50 text-slate-200 border-slate-600/60",
@@ -380,8 +387,7 @@ export default function TeamDashboardPage() {
       return;
     }
 
-    const memberName =
-      selectedRemoval.workers?.[0]?.full_name ?? "this member";
+    const memberName = getWorkerName(selectedRemoval.workers) ?? "this member";
     const confirmed = window.confirm(
       `Remove ${memberName} from the active roster?`,
     );
@@ -556,7 +562,7 @@ export default function TeamDashboardPage() {
                           className="border-t border-slate-800 text-slate-200"
                         >
                           <td className="px-4 py-3">
-                            {member.workers?.[0]?.full_name ?? "Unknown"}
+                            {getWorkerName(member.workers) ?? "Unknown"}
                           </td>
                           <td className="px-4 py-3">
                             {new Date(
@@ -632,7 +638,7 @@ export default function TeamDashboardPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm text-slate-200">
                       Remove{" "}
-                      {selectedRemoval.workers?.[0]?.full_name ?? "member"}
+                      {getWorkerName(selectedRemoval.workers) ?? "member"}
                     </p>
                     <button
                       type="button"
@@ -706,7 +712,7 @@ export default function TeamDashboardPage() {
                           className="border-t border-slate-800 text-slate-200"
                         >
                           <td className="px-4 py-3">
-                            {member.workers?.[0]?.full_name ?? "Unknown"}
+                            {getWorkerName(member.workers) ?? "Unknown"}
                           </td>
                           <td className="px-4 py-3">
                             {member.end_date
