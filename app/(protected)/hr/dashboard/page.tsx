@@ -22,9 +22,9 @@ type CaseRow = {
   replacement_worker_name: string | null;
   replacement_start_date: string | null;
   final_status: string;
-  teams: { name: string } | null;
-  workers: { full_name: string } | null;
-  team_memberships: { active: boolean } | null;
+  teams: { name: string }[] | null;
+  workers: { full_name: string }[] | null;
+  team_memberships: { active: boolean }[] | null;
   removedFromTeam?: boolean;
 };
 
@@ -159,7 +159,7 @@ export default function HrDashboardPage() {
         return;
       }
 
-      const caseRows = (casesData ?? []) as CaseRow[];
+      const caseRows: CaseRow[] = casesData ?? [];
       const missingMembershipCases = caseRows.filter(
         (caseItem) => !caseItem.membership_id,
       );
@@ -195,7 +195,7 @@ export default function HrDashboardPage() {
       const normalizedCases = caseRows.map((caseItem) => {
         const key = `${caseItem.team_id}-${caseItem.worker_id}`;
         const hasActiveMembership = caseItem.membership_id
-          ? caseItem.team_memberships?.active ?? false
+          ? caseItem.team_memberships?.[0]?.active ?? false
           : activeMembershipLookup.has(key);
 
         return {
@@ -492,11 +492,13 @@ export default function HrDashboardPage() {
                           className="border-t border-slate-800 text-slate-200"
                         >
                           <td className="px-4 py-3">
-                            {caseItem.teams?.name ?? "-"}
+                            {caseItem.teams?.[0]?.name ?? "-"}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex flex-col gap-1">
-                              <span>{caseItem.workers?.full_name ?? "-"}</span>
+                              <span>
+                                {caseItem.workers?.[0]?.full_name ?? "-"}
+                              </span>
                               {caseItem.removedFromTeam ? (
                                 <span className="inline-flex w-fit items-center rounded-full border border-rose-400/50 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-rose-200">
                                   Removed from team
