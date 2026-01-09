@@ -24,7 +24,6 @@ type CaseRow = {
   final_status: string;
   teams: { id: string; name: string; capacity?: number | null } | { id: string; name: string; capacity?: number | null }[] | null;
   workers: { id: string; full_name: string; national_id?: string | null; status?: string | null } | { id: string; full_name: string; national_id?: string | null; status?: string | null }[] | null;
-  team_memberships: { active: boolean }[] | null;
   removedFromTeam?: boolean;
 };
 
@@ -168,7 +167,7 @@ export default function HrDashboardPage() {
       const { data: casesData, error: casesError } = await supabase
         .from("absence_cases")
         .select(
-          "id, team_id, worker_id, membership_id, reason, reported_at, hr_status, sla_deadline_at, recruitment_status, replacement_worker_name, replacement_start_date, final_status, teams:team_id(id, name, capacity), workers:worker_id(id, full_name, national_id, status), team_memberships(active)",
+          "id, team_id, worker_id, membership_id, reason, reported_at, hr_status, sla_deadline_at, recruitment_status, replacement_worker_name, replacement_start_date, final_status, teams:team_id(id, name, capacity), workers:worker_id(id, full_name, national_id, status)",
         )
         .order("reported_at", { ascending: false })
         .limit(50);
@@ -193,7 +192,17 @@ export default function HrDashboardPage() {
       const teamIds = Array.from(
         new Set(missingMembershipCases.map((caseItem) => caseItem.team_id)),
       );
+      const membershipIds = Array.from(
+        new Set(
+          caseRows
+            .map((caseItem) => caseItem.membership_id)
+            .filter((membershipId): membershipId is string =>
+              Boolean(membershipId),
+            ),
+        ),
+      );
       const activeMembershipLookup = new Set<string>();
+      const membershipActiveLookup = new Map<string, boolean>();
 
       if (workerIds.length > 0 && teamIds.length > 0) {
         const { data: membershipData, error: membershipError } = await supabase
@@ -216,10 +225,27 @@ export default function HrDashboardPage() {
         });
       }
 
+      if (membershipIds.length > 0) {
+        const { data: membershipData, error: membershipError } = await supabase
+          .from("team_memberships")
+          .select("id, active")
+          .in("id", membershipIds);
+
+        if (membershipError) {
+          setError(membershipError.message);
+          setLoading(false);
+          return;
+        }
+
+        membershipData?.forEach((membership) => {
+          membershipActiveLookup.set(membership.id, membership.active);
+        });
+      }
+
       const normalizedCases = caseRows.map((caseItem) => {
         const key = `${caseItem.team_id}-${caseItem.worker_id}`;
         const hasActiveMembership = caseItem.membership_id
-          ? caseItem.team_memberships?.[0]?.active ?? false
+          ? membershipActiveLookup.get(caseItem.membership_id) ?? false
           : activeMembershipLookup.has(key);
 
         return {
