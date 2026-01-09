@@ -16,7 +16,10 @@ type CaseRow = {
   reason: string;
   status: string;
   reported_at: string;
-  workers: { full_name: string }[] | null;
+  workers:
+    | { id: string; full_name: string }
+    | { id: string; full_name: string }[]
+    | null;
 };
 
 export default function TeamCasesPage() {
@@ -67,7 +70,9 @@ export default function TeamCasesPage() {
 
       const { data: casesData, error: casesError } = await supabase
         .from("absence_cases")
-        .select("id, reason, status, reported_at, workers(full_name)")
+        .select(
+          "id, reason, status, reported_at, workers:worker_id(id, full_name)",
+        )
         .order("reported_at", { ascending: false })
         .limit(20);
 
@@ -131,25 +136,31 @@ export default function TeamCasesPage() {
                     </td>
                   </tr>
                 ) : (
-                  cases.map((caseItem) => (
-                    <tr
-                      key={caseItem.id}
-                      className="border-t border-slate-800 text-slate-200"
-                    >
-                      <td className="px-4 py-3">
-                        {caseItem.workers?.[0]?.full_name ?? "Unknown"}
-                      </td>
-                      <td className="px-4 py-3 capitalize">
-                        {caseItem.reason}
-                      </td>
-                      <td className="px-4 py-3 capitalize">
-                        {caseItem.status}
-                      </td>
-                      <td className="px-4 py-3">
-                        {new Date(caseItem.reported_at).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))
+                  cases.map((caseItem) => {
+                    const workerName = Array.isArray(caseItem.workers)
+                      ? caseItem.workers[0]?.full_name
+                      : caseItem.workers?.full_name;
+
+                    return (
+                      <tr
+                        key={caseItem.id}
+                        className="border-t border-slate-800 text-slate-200"
+                      >
+                        <td className="px-4 py-3">
+                          {workerName ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 capitalize">
+                          {caseItem.reason}
+                        </td>
+                        <td className="px-4 py-3 capitalize">
+                          {caseItem.status}
+                        </td>
+                        <td className="px-4 py-3">
+                          {new Date(caseItem.reported_at).toLocaleString()}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
