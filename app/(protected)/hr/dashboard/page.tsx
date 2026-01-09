@@ -22,8 +22,8 @@ type CaseRow = {
   replacement_worker_name: string | null;
   replacement_start_date: string | null;
   final_status: string;
-  teams: { name: string }[] | null;
-  workers: { full_name: string }[] | null;
+  teams: { id: string; name: string; capacity?: number | null } | { id: string; name: string; capacity?: number | null }[] | null;
+  workers: { id: string; full_name: string; national_id?: string | null; status?: string | null } | { id: string; full_name: string; national_id?: string | null; status?: string | null }[] | null;
   team_memberships: { active: boolean }[] | null;
   removedFromTeam?: boolean;
 };
@@ -81,6 +81,30 @@ function formatDate(dateValue: string | null) {
   }
 
   return new Date(`${dateValue}T00:00:00`).toLocaleDateString();
+}
+
+function getTeamName(teams: CaseRow["teams"]) {
+  if (!teams) {
+    return "-";
+  }
+
+  if (Array.isArray(teams)) {
+    return teams[0]?.name ?? "-";
+  }
+
+  return teams.name ?? "-";
+}
+
+function getWorkerName(workers: CaseRow["workers"]) {
+  if (!workers) {
+    return "-";
+  }
+
+  if (Array.isArray(workers)) {
+    return workers[0]?.full_name ?? "-";
+  }
+
+  return workers.full_name ?? "-";
 }
 
 export default function HrDashboardPage() {
@@ -144,7 +168,7 @@ export default function HrDashboardPage() {
       const { data: casesData, error: casesError } = await supabase
         .from("absence_cases")
         .select(
-          "id, team_id, worker_id, membership_id, reason, reported_at, hr_status, sla_deadline_at, recruitment_status, replacement_worker_name, replacement_start_date, final_status, teams(name), workers(full_name), team_memberships(active)",
+          "id, team_id, worker_id, membership_id, reason, reported_at, hr_status, sla_deadline_at, recruitment_status, replacement_worker_name, replacement_start_date, final_status, teams:team_id(id, name, capacity), workers:worker_id(id, full_name, national_id, status), team_memberships(active)",
         )
         .order("reported_at", { ascending: false })
         .limit(50);
@@ -492,13 +516,11 @@ export default function HrDashboardPage() {
                           className="border-t border-slate-800 text-slate-200"
                         >
                           <td className="px-4 py-3">
-                            {caseItem.teams?.[0]?.name ?? "-"}
+                            {getTeamName(caseItem.teams)}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex flex-col gap-1">
-                              <span>
-                                {caseItem.workers?.[0]?.full_name ?? "-"}
-                              </span>
+                              <span>{getWorkerName(caseItem.workers)}</span>
                               {caseItem.removedFromTeam ? (
                                 <span className="inline-flex w-fit items-center rounded-full border border-rose-400/50 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-rose-200">
                                   Removed from team
