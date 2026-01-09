@@ -10,32 +10,32 @@ type SessionUser = {
 export type SessionState = {
   isAuthenticated: boolean;
   user?: SessionUser;
+  wrtToken?: string | null;
 };
 
 const TOKEN_KEY = "wrt_token";
 
 export async function getSession(): Promise<SessionState> {
   const supabase = getSupabaseBrowserClient();
-  const { data } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getSession();
+  const sessionUser = data.session?.user ?? null;
+  const wrtToken =
+    typeof window !== "undefined"
+      ? window.localStorage.getItem(TOKEN_KEY)
+      : null;
 
-  if (data.user) {
+  if (sessionUser) {
     return {
       isAuthenticated: true,
       user: {
-        email: data.user.email,
-        name: data.user.user_metadata?.full_name ?? null,
+        email: sessionUser.email,
+        name: sessionUser.user_metadata?.full_name ?? null,
       },
+      wrtToken,
     };
   }
 
-  if (typeof window !== "undefined") {
-    const token = window.localStorage.getItem(TOKEN_KEY);
-    if (token) {
-      return { isAuthenticated: true, user: { email: "Authenticated User" } };
-    }
-  }
-
-  return { isAuthenticated: false };
+  return { isAuthenticated: false, wrtToken };
 }
 
 export async function login(credentials: {

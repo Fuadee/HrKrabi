@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { logout } from "@/lib/auth";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 
 type Profile = {
@@ -24,7 +25,10 @@ export default function MePage() {
       const { data, error: userError } = await supabase.auth.getUser();
 
       if (userError || !data.user) {
-        router.replace("/login");
+        if (isMounted) {
+          setError(userError?.message ?? "Unable to load user.");
+          setLoading(false);
+        }
         return;
       }
 
@@ -55,6 +59,11 @@ export default function MePage() {
     };
   }, [router]);
 
+  const handleLogout = async () => {
+    await logout();
+    router.replace("/login");
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-white">
       <div className="w-full max-w-md space-y-4 rounded-xl border border-slate-800 bg-slate-950/60 p-6">
@@ -81,6 +90,13 @@ export default function MePage() {
             {error}
           </p>
         ) : null}
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full rounded-md border border-slate-700 px-4 py-2 text-sm font-semibold text-white transition hover:border-slate-500"
+        >
+          Logout
+        </button>
       </div>
     </main>
   );
