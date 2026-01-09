@@ -7,6 +7,21 @@ import { getSession, login } from "@/lib/auth";
 import { getDefaultRouteForRole, getProfileRole } from "@/lib/roleRedirect";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 
+const waitForSession = async (timeoutMs = 1000, intervalMs = 100) => {
+  const supabase = getSupabaseBrowserClient();
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.user) {
+      return data.session;
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  return null;
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -55,7 +70,14 @@ export default function LoginPage() {
       return;
     }
 
-    const role = await getProfileRole();
+    const session = await waitForSession();
+    if (!session?.user) {
+      setError("We could not confirm your session. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    const role = await getProfileRole(session.user.id);
     const target = getDefaultRouteForRole(role);
     router.replace(target);
   };
@@ -76,8 +98,9 @@ export default function LoginPage() {
       return;
     }
 
-    if (data.session) {
-      const role = await getProfileRole(data.user?.id ?? null);
+    const confirmedSession = data.session ?? (await waitForSession());
+    if (confirmedSession?.user) {
+      const role = await getProfileRole(confirmedSession.user.id);
       const target = getDefaultRouteForRole(role);
       router.replace(target);
       return;
