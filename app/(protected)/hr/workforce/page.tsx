@@ -20,12 +20,6 @@ type TeamSummary = {
   last_update: string | null;
 };
 
-type TeamOption = {
-  id: string;
-  name: string;
-  district_name: string | null;
-};
-
 type MemberRow = {
   id: string;
   full_name: string;
@@ -40,7 +34,6 @@ type WorkforceResponse = {
     district: string;
     districts: string[];
     teams: TeamSummary[];
-    availableTeams: TeamOption[];
     activeMembers: MemberRow[];
   };
   error?: string;
@@ -98,10 +91,8 @@ export default function HrWorkforcePage() {
   const [districts, setDistricts] = useState<string[]>(districtOptions);
   const [selectedDistrict, setSelectedDistrict] = useState("ไม่ระบุ");
   const [teams, setTeams] = useState<TeamSummary[]>([]);
-  const [availableTeams, setAvailableTeams] = useState<TeamOption[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [activeMembers, setActiveMembers] = useState<MemberRow[]>([]);
-  const [teamSearch, setTeamSearch] = useState("");
   const [updatingTeamId, setUpdatingTeamId] = useState<string | null>(null);
 
   const getAccessToken = async () => {
@@ -140,7 +131,6 @@ export default function HrWorkforcePage() {
       if (payload.data) {
         setDistricts(payload.data.districts);
         setTeams(payload.data.teams);
-        setAvailableTeams(payload.data.availableTeams);
       }
     } catch (loadError) {
       setError(
@@ -304,23 +294,6 @@ export default function HrWorkforcePage() {
     }
   };
 
-  const filteredTeamOptions = useMemo(() => {
-    return availableTeams.filter(
-      (team) => team.district_name === selectedDistrict,
-    );
-  }, [availableTeams, selectedDistrict]);
-
-  const visibleTeams = useMemo(() => {
-    const searchTerm = teamSearch.trim().toLowerCase();
-    if (!searchTerm) {
-      return filteredTeamOptions;
-    }
-
-    return filteredTeamOptions.filter((team) =>
-      team.name.toLowerCase().includes(searchTerm),
-    );
-  }, [filteredTeamOptions, teamSearch]);
-
   const selectedTeam = useMemo(() => {
     return teams.find((team) => team.id === selectedTeamId) ?? null;
   }, [teams, selectedTeamId]);
@@ -353,50 +326,26 @@ export default function HrWorkforcePage() {
           <div className="space-y-4">
             <SectionHeader
               title="ตัวกรอง"
-              subtitle="กำหนดอำเภอและค้นหาทีม"
+              subtitle="กำหนดอำเภอ"
+              action={
+                <div className="w-full max-w-[420px] md:min-w-[360px]">
+                  <label className="text-xs text-slate-400">อำเภอ</label>
+                  <select
+                    value={selectedDistrict}
+                    onChange={(event) =>
+                      setSelectedDistrict(event.target.value)
+                    }
+                    className="select-premium mt-2"
+                  >
+                    {districts.map((district) => (
+                      <option key={district} value={district}>
+                        {district}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              }
             />
-            <div className="grid gap-4 rounded-xl border border-white/5 bg-[#0B1220] p-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm text-slate-300">อำเภอ</label>
-              <select
-                value={selectedDistrict}
-                onChange={(event) => setSelectedDistrict(event.target.value)}
-                className="select-premium"
-              >
-                {districts.map((district) => (
-                  <option key={district} value={district}>
-                    {district}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-slate-300">ค้นหาทีม</label>
-              <input
-                value={teamSearch}
-                onChange={(event) => setTeamSearch(event.target.value)}
-                placeholder="พิมพ์ชื่อทีมที่ต้องการค้นหา"
-                className="input-premium"
-              />
-              <select
-                value={selectedTeamId ?? ""}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  if (value) {
-                    handleTeamSelect(value);
-                  }
-                }}
-                className="select-premium"
-              >
-                <option value="">เลือกทีม</option>
-                {visibleTeams.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
           </div>
 
           <div className="space-y-4">
@@ -500,11 +449,7 @@ export default function HrWorkforcePage() {
           <div className="space-y-4">
             <SectionHeader
               title="กำลังคนปฏิบัติงาน"
-              subtitle={
-                selectedTeam
-                  ? `ทีม: ${selectedTeam.name}`
-                  : "เลือกทีมเพื่อดูรายชื่อกำลังคนปฏิบัติงาน"
-              }
+              subtitle={selectedTeam ? `ทีม: ${selectedTeam.name}` : undefined}
               action={
                 loadingMembers ? (
                   <span className="text-xs text-slate-400">
@@ -562,7 +507,11 @@ export default function HrWorkforcePage() {
                   </tbody>
                 </table>
               </div>
-            ) : null}
+            ) : (
+              <p className="text-sm text-slate-400">
+                คลิกทีมจากรายการด้านบนเพื่อดูรายชื่อกำลังคนปฏิบัติงาน
+              </p>
+            )}
           </div>
         </div>
       ) : null}
