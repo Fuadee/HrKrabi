@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
     const teamIds = teamRows.map((team) => team.id);
 
     const { data: availableTeams, error: availableTeamsError } =
-      await supabase.rpc<TeamOption>("hr_get_team_workforce_summary", {
+      await supabase.rpc("hr_get_team_workforce_summary", {
         district_name: null,
       });
 
@@ -161,6 +161,8 @@ export async function GET(request: NextRequest) {
         { status: 500 },
       );
     }
+
+    const availableTeamsRows = (availableTeams ?? []) as TeamOption[];
 
     const summaries: TeamSummary[] = teamRows.map((team) => ({
       ...team,
@@ -214,7 +216,7 @@ export async function GET(request: NextRequest) {
         district: districtName,
         districts: districtOptions,
         teams: summaries,
-        availableTeams: (availableTeams ?? []) as TeamOption[],
+        availableTeams: availableTeamsRows,
         activeMembers,
       },
     });
