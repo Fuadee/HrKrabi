@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
     const { data: teamsInDistrict, error: teamsError } = await supabase.rpc(
       "hr_get_team_workforce_summary",
       {
-        district_name: districtName,
+        p_district_name: districtName,
       },
     );
 
@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
 
     const { data: availableTeams, error: availableTeamsError } =
       await supabase.rpc("hr_get_team_workforce_summary", {
-        district_name: null,
+        p_district_name: null,
       });
 
     if (availableTeamsError) {
