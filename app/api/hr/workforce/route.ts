@@ -74,6 +74,31 @@ function getSupabaseAnonClient() {
   });
 }
 
+function getSupabaseUserClient(token: string) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !anonKey) {
+    const missing = [
+      !supabaseUrl ? "NEXT_PUBLIC_SUPABASE_URL" : null,
+      !anonKey ? "NEXT_PUBLIC_SUPABASE_ANON_KEY" : null,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    throw new Error(
+      `Missing Supabase environment variables: ${missing}. Check .env.local.`,
+    );
+  }
+
+  return createClient(supabaseUrl, anonKey, {
+    global: {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
 function normalizeWorkerName(workers: MemberRow["workers"]) {
   if (!workers) {
     return null;
@@ -119,6 +144,7 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = getSupabaseServerClient();
+    const supabaseUser = getSupabaseUserClient(token);
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("role")
@@ -133,7 +159,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { data: teamsInDistrict, error: teamsError } = await supabase.rpc(
+    const { data: teamsInDistrict, error: teamsError } = await supabaseUser.rpc(
       "hr_get_team_workforce_summary",
       {
         p_district_name: districtName,
@@ -151,7 +177,7 @@ export async function GET(request: NextRequest) {
     const teamIds = teamRows.map((team) => team.id);
 
     const { data: availableTeams, error: availableTeamsError } =
-      await supabase.rpc("hr_get_team_workforce_summary", {
+      await supabaseUser.rpc("hr_get_team_workforce_summary", {
         p_district_name: null,
       });
 
