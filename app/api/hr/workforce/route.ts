@@ -127,13 +127,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { data: teamsInDistrict, error: teamsError } = await supabase
-      .from("hr_team_workforce_summary")
-      .select(
-        "id, name, capacity, district_name, active_headcount, missing_count, last_update",
-      )
-      .eq("district_name", districtName)
-      .order("name");
+    const { data: teamsInDistrict, error: teamsError } = await supabase.rpc<
+      TeamRow
+    >("hr_get_team_workforce_summary", {
+      district_name: districtName,
+    });
 
     if (teamsError) {
       return NextResponse.json(
@@ -145,10 +143,9 @@ export async function GET(request: NextRequest) {
     const teamIds = (teamsInDistrict ?? []).map((team) => team.id);
 
     const { data: availableTeams, error: availableTeamsError } =
-      await supabase
-        .from("hr_team_workforce_summary")
-        .select("id, name, district_name")
-        .order("name");
+      await supabase.rpc<TeamOption>("hr_get_team_workforce_summary", {
+        district_name: null,
+      });
 
     if (availableTeamsError) {
       return NextResponse.json(
