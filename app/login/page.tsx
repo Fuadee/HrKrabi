@@ -57,7 +57,7 @@ export default function LoginPage() {
 
   const handleSignIn = async () => {
     if (!email || !password) {
-      setError("Email and password are required.");
+      setError("กรุณากรอกอีเมลและรหัสผ่าน");
       return;
     }
     setLoading(true);
@@ -72,7 +72,7 @@ export default function LoginPage() {
 
     const session = await waitForSession();
     if (!session?.user) {
-      setError("We could not confirm your session. Please try again.");
+      setError("ไม่สามารถยืนยันเซสชันได้ กรุณาลองใหม่อีกครั้ง");
       setLoading(false);
       return;
     }
@@ -106,45 +106,45 @@ export default function LoginPage() {
       return;
     }
 
-    setStatus("Check your email to confirm your account.");
+    setStatus("กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชี");
     setLoading(false);
   };
 
   if (checkingSession) {
     return (
       <main className="flex min-h-screen items-center justify-center text-sm text-slate-400">
-        Checking your session...
+        กำลังตรวจสอบเซสชัน...
       </main>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-white">
-      <div className="w-full max-w-md space-y-4 rounded-xl border border-slate-800 bg-slate-950/60 p-6">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-[#E7EEF8]">
+      <div className="w-full max-w-md space-y-4 rounded-2xl border border-white/5 bg-[#0B1220]/80 p-6 shadow-[0_20px_60px_rgba(5,8,20,0.45)]">
         <div>
-          <h1 className="text-2xl font-semibold">Sign in</h1>
+          <h1 className="text-2xl font-semibold">เข้าสู่ระบบ</h1>
           <p className="text-sm text-slate-400">
-            Use your email and password to access your profile.
+            ใช้อีเมลและรหัสผ่านเพื่อเข้าถึงโปรไฟล์ของคุณ
           </p>
         </div>
         <div className="space-y-3 text-left">
           <label className="block text-sm font-medium text-slate-200">
-            Email
+            อีเมล
             <input
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-white placeholder:text-slate-500 focus:border-slate-400 focus:outline-none"
+              className="input-premium mt-1"
               placeholder="you@example.com"
             />
           </label>
           <label className="block text-sm font-medium text-slate-200">
-            Password
+            รหัสผ่าน
             <input
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-white placeholder:text-slate-500 focus:border-slate-400 focus:outline-none"
+              className="input-premium mt-1"
               placeholder="••••••••"
             />
           </label>
@@ -164,17 +164,17 @@ export default function LoginPage() {
             type="button"
             onClick={handleSignIn}
             disabled={loading}
-            className="w-full rounded-md bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70"
+            className="btn-gold w-full text-sm"
           >
-            Sign in
+            เข้าสู่ระบบ
           </button>
           <button
             type="button"
             onClick={handleSignUp}
             disabled={loading}
-            className="w-full rounded-md border border-slate-700 px-4 py-2 text-sm font-semibold text-white transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-70"
+            className="btn-secondary w-full text-sm"
           >
-            Sign up
+            ลงทะเบียน
           </button>
         </div>
       </div>

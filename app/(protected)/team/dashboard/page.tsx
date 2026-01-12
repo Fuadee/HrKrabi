@@ -69,10 +69,10 @@ type RemoveMemberResponse = {
 };
 
 const removalReasons = [
-  { value: "quit", label: "Quit" },
-  { value: "absent_3days", label: "Absent 3 days" },
-  { value: "replaced", label: "Replaced" },
-  { value: "other", label: "Other" },
+  { value: "quit", label: "ลาออก" },
+  { value: "absent_3days", label: "ขาดงาน 3 วัน" },
+  { value: "replaced", label: "ถูกแทนที่" },
+  { value: "other", label: "อื่น ๆ" },
 ];
 
 export default function TeamDashboardPage() {
@@ -150,7 +150,7 @@ export default function TeamDashboardPage() {
       .single<Profile>();
 
     if (profileError || !profile) {
-      setError(profileError?.message ?? "Unable to load profile.");
+      setError(profileError?.message ?? "ไม่สามารถโหลดโปรไฟล์ได้");
       setLoading(false);
       return;
     }
@@ -159,7 +159,7 @@ export default function TeamDashboardPage() {
 
     if (profile.role !== "team_lead") {
       const redirectTarget = getDefaultRouteForRole(profile.role);
-      setError("Only team leads can access the roster dashboard.");
+      setError("เฉพาะหัวหน้าทีมเท่านั้นที่เข้าถึงแดชบอร์ดได้");
       setLoading(false);
       setCasesLoading(false);
       router.replace(redirectTarget);
@@ -167,7 +167,7 @@ export default function TeamDashboardPage() {
     }
 
     if (!profile.team_id) {
-      setError("No team assigned to your profile.");
+      setError("โปรไฟล์ของคุณยังไม่ได้ระบุทีม");
       setLoading(false);
       setCasesLoading(false);
       return;
@@ -180,7 +180,7 @@ export default function TeamDashboardPage() {
       .single<TeamRow>();
 
     if (teamError || !teamData) {
-      setError(teamError?.message ?? "Unable to load team.");
+      setError(teamError?.message ?? "ไม่สามารถโหลดข้อมูลทีมได้");
       setLoading(false);
       setCasesLoading(false);
       return;
@@ -243,7 +243,7 @@ export default function TeamDashboardPage() {
       if (!casesResponse.ok) {
         setCasesError(
           casesPayload.error ??
-            "Case statuses are unavailable. The member list is still available.",
+            "ไม่สามารถดึงสถานะเคสได้ แต่ยังสามารถดูรายชื่อกำลังคนได้",
         );
         setLatestCasesByWorker({});
       } else {
@@ -286,23 +286,23 @@ export default function TeamDashboardPage() {
   }, [router]);
 
   const formatDate = (value?: string | null) =>
-    value ? new Date(value).toLocaleDateString() : "-";
+    value ? new Date(value).toLocaleDateString("th-TH") : "-";
   const formatDateTime = (value?: string | null) =>
-    value ? new Date(value).toLocaleString() : "-";
+    value ? new Date(value).toLocaleString("th-TH") : "-";
   const getWorkerName = (
     worker: { full_name: string } | { full_name: string }[] | null,
   ) => (Array.isArray(worker) ? worker[0]?.full_name : worker?.full_name);
 
   const statusStyles: Record<string, string> = {
-    reported: "bg-slate-700/50 text-slate-200 border-slate-600/60",
-    in_sla: "bg-emerald-500/20 text-emerald-200 border-emerald-500/40",
-    sla_expired: "bg-amber-500/20 text-amber-200 border-amber-500/40",
-    not_found: "bg-rose-500/20 text-rose-200 border-rose-500/40",
-    found: "bg-sky-500/20 text-sky-200 border-sky-500/40",
-    swapped: "bg-violet-500/20 text-violet-200 border-violet-500/40",
-    vacant: "bg-orange-500/20 text-orange-200 border-orange-500/40",
-    closed: "bg-slate-500/30 text-slate-100 border-slate-500/40",
-    default: "bg-slate-700/50 text-slate-200 border-slate-600/60",
+    reported: "badge bg-slate-800/60 text-slate-200 border-slate-600/40",
+    in_sla: "badge bg-emerald-500/10 text-emerald-200 border-emerald-500/30",
+    sla_expired: "badge bg-amber-500/10 text-amber-200 border-amber-500/30",
+    not_found: "badge bg-rose-500/10 text-rose-200 border-rose-500/30",
+    found: "badge bg-sky-500/10 text-sky-200 border-sky-500/30",
+    swapped: "badge bg-violet-500/10 text-violet-200 border-violet-500/30",
+    vacant: "badge bg-orange-500/10 text-orange-200 border-orange-500/30",
+    closed: "badge bg-slate-600/30 text-slate-100 border-slate-500/40",
+    default: "badge bg-slate-800/60 text-slate-200 border-slate-600/40",
   };
 
   const getCaseStatus = (caseRow?: CaseRow | null) => {
@@ -313,28 +313,33 @@ export default function TeamDashboardPage() {
     const finalStatus = caseRow.final_status;
     if (["swapped", "vacant", "closed"].includes(finalStatus)) {
       return {
-        label: finalStatus.replace(/_/g, " "),
+        label:
+          finalStatus === "swapped"
+            ? "สลับกำลังคนแล้ว"
+            : finalStatus === "vacant"
+              ? "ตำแหน่งว่าง"
+              : "ปิดแล้ว",
         style: statusStyles[finalStatus] ?? statusStyles.default,
       };
     }
 
     if (caseRow.hr_status === "pending" && !caseRow.hr_received_at) {
-      return { label: "Reported", style: statusStyles.reported };
+      return { label: "รายงานแล้ว", style: statusStyles.reported };
     }
     if (caseRow.hr_status === "in_sla") {
-      return { label: "In SLA", style: statusStyles.in_sla };
+      return { label: "อยู่ใน SLA", style: statusStyles.in_sla };
     }
     if (caseRow.hr_status === "sla_expired") {
-      return { label: "SLA Expired", style: statusStyles.sla_expired };
+      return { label: "เกิน SLA", style: statusStyles.sla_expired };
     }
     if (caseRow.recruitment_status === "not_found") {
-      return { label: "Not Found", style: statusStyles.not_found };
+      return { label: "ยังไม่พบ", style: statusStyles.not_found };
     }
     if (caseRow.recruitment_status === "found") {
-      return { label: "Found", style: statusStyles.found };
+      return { label: "พบคนแทนแล้ว", style: statusStyles.found };
     }
 
-    return { label: "In progress", style: statusStyles.default };
+    return { label: "กำลังดำเนินการ", style: statusStyles.default };
   };
 
   const handleAddMember = async () => {
@@ -363,7 +368,7 @@ export default function TeamDashboardPage() {
       const payload = (await response.json()) as AddMemberResponse;
 
       if (!response.ok) {
-        setError(payload.error ?? "Failed to add member.");
+        setError(payload.error ?? "ไม่สามารถเพิ่มกำลังคนได้");
         setSubmitting(false);
         return;
       }
@@ -376,7 +381,7 @@ export default function TeamDashboardPage() {
       setError(
         actionError instanceof Error
           ? actionError.message
-          : "Unexpected error.",
+          : "เกิดข้อผิดพลาดที่ไม่คาดคิด",
       );
       setSubmitting(false);
     }
@@ -387,9 +392,9 @@ export default function TeamDashboardPage() {
       return;
     }
 
-    const memberName = getWorkerName(selectedRemoval.workers) ?? "this member";
+    const memberName = getWorkerName(selectedRemoval.workers) ?? "กำลังคนนี้";
     const confirmed = window.confirm(
-      `Remove ${memberName} from the active roster?`,
+      `ต้องการนำ ${memberName} ออกจากรายชื่อปฏิบัติงานหรือไม่`,
     );
 
     if (!confirmed) {
@@ -422,7 +427,7 @@ export default function TeamDashboardPage() {
       const payload = (await response.json()) as RemoveMemberResponse;
 
       if (!response.ok) {
-        setError(payload.error ?? "Failed to remove member.");
+        setError(payload.error ?? "ไม่สามารถนำกำลังคนออกได้");
         setRemoving(false);
         return;
       }
@@ -436,27 +441,27 @@ export default function TeamDashboardPage() {
       setError(
         actionError instanceof Error
           ? actionError.message
-          : "Unexpected error.",
+          : "เกิดข้อผิดพลาดที่ไม่คาดคิด",
       );
       setRemoving(false);
     }
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-white">
-      <div className="w-full max-w-6xl space-y-6 rounded-xl border border-slate-800 bg-slate-950/60 p-6 text-left">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-[#E7EEF8]">
+      <div className="w-full max-w-6xl space-y-6 rounded-2xl border border-white/5 bg-[#0B1220]/80 p-6 text-left shadow-[0_20px_60px_rgba(5,8,20,0.45)]">
         <div>
-          <h1 className="text-2xl font-semibold">Team workforce dashboard</h1>
+          <h1 className="text-2xl font-semibold">แดชบอร์ดกำลังคนของทีม</h1>
           <p className="text-sm text-slate-400">
-            Manage the on-site roster and track active headcount.
+            บริหารรายชื่อและติดตามกำลังคนปฏิบัติงานของทีม
           </p>
         </div>
         {loading ? (
-          <p className="text-sm text-slate-300">Loading roster...</p>
+          <p className="text-sm text-slate-300">กำลังโหลดรายชื่อ...</p>
         ) : null}
         {!loading && role !== "team_lead" ? (
           <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
-            {error ?? "Access restricted."}
+            {error ?? "ไม่มีสิทธิ์เข้าถึง"}
           </p>
         ) : null}
         {!loading && role === "team_lead" ? (
@@ -466,113 +471,131 @@ export default function TeamDashboardPage() {
                 {error}
               </p>
             ) : null}
-            <div className="grid gap-4 rounded-lg border border-slate-800 bg-slate-900/40 p-4 md:grid-cols-4">
+            <div className="grid gap-4 rounded-xl border border-white/5 bg-[#0E1629] p-4 md:grid-cols-4">
               <div>
-                <p className="text-xs uppercase text-slate-400">Team</p>
-                <p className="text-lg font-semibold text-white">
+                <p className="text-xs uppercase tracking-widest text-slate-400">
+                  ทีม
+                </p>
+                <p className="text-lg font-semibold text-[#E7EEF8]">
                   {team?.name ?? "-"}
                 </p>
               </div>
               <div>
-                <p className="text-xs uppercase text-slate-400">Capacity</p>
-                <p className="text-lg font-semibold text-white">
+                <p className="text-xs uppercase tracking-widest text-slate-400">
+                  อัตรากำลัง
+                </p>
+                <p className="text-lg font-semibold text-[#E7EEF8]">
                   {team?.capacity ?? 0}
                 </p>
               </div>
               <div>
-                <p className="text-xs uppercase text-slate-400">
-                  Active headcount
+                <p className="text-xs uppercase tracking-widest text-slate-400">
+                  กำลังคนปฏิบัติงาน
                 </p>
-                <p className="text-lg font-semibold text-white">{headcount}</p>
+                <p className="text-lg font-semibold text-[#E7EEF8]">
+                  {headcount}
+                </p>
               </div>
               <div>
-                <p className="text-xs uppercase text-slate-400">Missing</p>
-                <p className="text-lg font-semibold text-white">
+                <p className="text-xs uppercase tracking-widest text-slate-400">
+                  ขาด
+                </p>
+                <p className="text-lg font-semibold text-[#E7EEF8]">
                   {missingCount}
                 </p>
               </div>
             </div>
 
-            <div className="grid gap-4 rounded-lg border border-slate-800 bg-slate-900/30 p-4 md:grid-cols-[2fr,1fr]">
+            <div className="grid gap-4 rounded-xl border border-white/5 bg-[#0E1629] p-4 md:grid-cols-[2fr,1fr]">
               <div>
-                <h2 className="text-lg font-semibold">Add member</h2>
+                <h2 className="text-lg font-semibold">เพิ่มกำลังคน</h2>
                 <p className="text-xs text-slate-400">
-                  Add a worker directly to the active roster.
+                  เพิ่มผู้ปฏิบัติงานเข้าสู่รายชื่อปฏิบัติงานทันที
                 </p>
               </div>
               <div className="space-y-3">
                 <label className="block text-sm text-slate-200">
-                  Full name
+                  ชื่อ-สกุล
                   <input
                     type="text"
                     value={fullName}
                     onChange={(event) => setFullName(event.target.value)}
-                    className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                    className="input-premium mt-1"
                   />
                 </label>
                 <label className="block text-sm text-slate-200">
-                  National ID (optional)
+                  เลขประจำตัวประชาชน (ถ้ามี)
                   <input
                     type="text"
                     value={nationalId}
                     onChange={(event) => setNationalId(event.target.value)}
-                    className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                    className="input-premium mt-1"
                   />
                 </label>
                 <button
                   type="button"
                   onClick={handleAddMember}
                   disabled={submitting || !fullName.trim()}
-                  className="w-full rounded-md bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="btn-gold w-full text-sm"
                 >
-                  {submitting ? "Adding..." : "Add member"}
+                  {submitting ? "กำลังเพิ่ม..." : "เพิ่มกำลังคน"}
                 </button>
               </div>
             </div>
 
             <div className="space-y-3">
-              <h2 className="text-lg font-semibold">Active members</h2>
+              <h2 className="text-lg font-semibold">กำลังคนปฏิบัติงาน</h2>
               {casesError ? (
                 <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
                   {casesError}
                 </p>
               ) : null}
-              <div className="overflow-hidden rounded-lg border border-slate-800">
+              <div className="overflow-hidden rounded-xl border border-white/5">
                 <table className="w-full border-collapse text-sm">
-                  <thead className="bg-slate-900/60 text-slate-300">
+                  <thead className="bg-[#0E1629]">
                     <tr>
-                      <th className="px-4 py-3 text-left">Name</th>
-                      <th className="px-4 py-3 text-left">Start date</th>
-                      <th className="px-4 py-3 text-left">Case status</th>
-                      <th className="px-4 py-3 text-left">Last update</th>
-                      <th className="px-4 py-3 text-left">Action</th>
+                      <th className="table-header-cell px-4 py-3 text-left">
+                        ชื่อ-สกุล
+                      </th>
+                      <th className="table-header-cell px-4 py-3 text-left">
+                        วันที่เริ่ม
+                      </th>
+                      <th className="table-header-cell px-4 py-3 text-left">
+                        สถานะเคส
+                      </th>
+                      <th className="table-header-cell px-4 py-3 text-left">
+                        อัปเดตล่าสุด
+                      </th>
+                      <th className="table-header-cell px-4 py-3 text-left">
+                        การดำเนินการ
+                      </th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-white/5">
                     {activeMembers.length === 0 ? (
                       <tr>
                         <td className="px-4 py-4 text-slate-400" colSpan={5}>
-                          No active members.
+                          ยังไม่มีรายชื่อปฏิบัติงาน
                         </td>
                       </tr>
                     ) : (
                       activeMembers.map((member) => (
                         <tr
                           key={member.id}
-                          className="border-t border-slate-800 text-slate-200"
+                          className="table-row-hover text-slate-200"
                         >
                           <td className="px-4 py-3">
-                            {getWorkerName(member.workers) ?? "Unknown"}
+                            {getWorkerName(member.workers) ?? "ไม่ทราบชื่อ"}
                           </td>
                           <td className="px-4 py-3">
                             {new Date(
                               `${member.start_date}T00:00:00`,
-                            ).toLocaleDateString()}
+                            ).toLocaleDateString("th-TH")}
                           </td>
                           <td className="px-4 py-3">
                             {casesLoading ? (
                               <span className="text-xs text-slate-400">
-                                Loading...
+                                กำลังโหลด...
                               </span>
                             ) : (
                               (() => {
@@ -580,9 +603,7 @@ export default function TeamDashboardPage() {
                                   latestCasesByWorker[member.worker_id];
                                 const status = getCaseStatus(caseRow);
                                 return (
-                                  <span
-                                    className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${status.style}`}
-                                  >
+                                  <span className={status.style}>
                                     {status.label}
                                   </span>
                                 );
@@ -592,7 +613,7 @@ export default function TeamDashboardPage() {
                           <td className="px-4 py-3">
                             {casesLoading ? (
                               <span className="text-xs text-slate-400">
-                                Loading...
+                                กำลังโหลด...
                               </span>
                             ) : (
                               (() => {
@@ -606,7 +627,8 @@ export default function TeamDashboardPage() {
                                     <p>{formatDateTime(caseRow.last_update_at)}</p>
                                     {caseRow.sla_deadline_at ? (
                                       <p className="text-xs text-slate-400">
-                                        SLA {formatDate(caseRow.sla_deadline_at)}
+                                        กำหนด SLA{" "}
+                                        {formatDate(caseRow.sla_deadline_at)}
                                       </p>
                                     ) : null}
                                   </div>
@@ -622,9 +644,9 @@ export default function TeamDashboardPage() {
                                 setEndedReason("quit");
                                 setEndedNote("");
                               }}
-                              className="rounded-md border border-rose-400/60 px-3 py-2 text-xs font-semibold text-rose-100 transition hover:bg-rose-500/10"
+                              className="btn-destructive"
                             >
-                              Remove
+                              ลบออก
                             </button>
                           </td>
                         </tr>
@@ -634,27 +656,27 @@ export default function TeamDashboardPage() {
                 </table>
               </div>
               {selectedRemoval ? (
-                <div className="space-y-3 rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+                <div className="space-y-3 rounded-xl border border-white/5 bg-[#0E1629] p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm text-slate-200">
-                      Remove{" "}
-                      {getWorkerName(selectedRemoval.workers) ?? "member"}
+                      ลบ{" "}
+                      {getWorkerName(selectedRemoval.workers) ?? "กำลังคน"}
                     </p>
                     <button
                       type="button"
                       onClick={() => setSelectedRemoval(null)}
                       className="text-xs text-slate-400 hover:text-slate-200"
                     >
-                      Cancel
+                      ยกเลิก
                     </button>
                   </div>
                   <div className="grid gap-3 md:grid-cols-2">
                     <label className="block text-sm text-slate-200">
-                      Reason
+                      เหตุผล
                       <select
                         value={endedReason}
                         onChange={(event) => setEndedReason(event.target.value)}
-                        className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                        className="select-premium mt-1"
                       >
                         {removalReasons.map((item) => (
                           <option key={item.value} value={item.value}>
@@ -664,12 +686,12 @@ export default function TeamDashboardPage() {
                       </select>
                     </label>
                     <label className="block text-sm text-slate-200">
-                      Note (optional)
+                      หมายเหตุ (ถ้ามี)
                       <input
                         type="text"
                         value={endedNote}
                         onChange={(event) => setEndedNote(event.target.value)}
-                        className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                        className="input-premium mt-1"
                       />
                     </label>
                   </div>
@@ -677,9 +699,9 @@ export default function TeamDashboardPage() {
                     type="button"
                     onClick={handleConfirmRemove}
                     disabled={removing}
-                    className="rounded-md bg-rose-400 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-rose-300 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="btn-destructive px-4 py-2 text-sm"
                   >
-                    {removing ? "Removing..." : "Confirm removal"}
+                    {removing ? "กำลังลบ..." : "ยืนยันการลบ"}
                   </button>
                 </div>
               ) : null}
@@ -687,43 +709,52 @@ export default function TeamDashboardPage() {
 
             <div className="space-y-3">
               <h2 className="text-lg font-semibold">
-                Inactive/Ended members (last 20)
+                กำลังคนที่สิ้นสุด (20 รายการล่าสุด)
               </h2>
-              <div className="overflow-hidden rounded-lg border border-slate-800">
+              <div className="overflow-hidden rounded-xl border border-white/5">
                 <table className="w-full border-collapse text-sm">
-                  <thead className="bg-slate-900/60 text-slate-300">
+                  <thead className="bg-[#0E1629]">
                     <tr>
-                      <th className="px-4 py-3 text-left">Name</th>
-                      <th className="px-4 py-3 text-left">End date</th>
-                      <th className="px-4 py-3 text-left">Reason</th>
+                      <th className="table-header-cell px-4 py-3 text-left">
+                        ชื่อ-สกุล
+                      </th>
+                      <th className="table-header-cell px-4 py-3 text-left">
+                        วันที่สิ้นสุด
+                      </th>
+                      <th className="table-header-cell px-4 py-3 text-left">
+                        เหตุผล
+                      </th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-white/5">
                     {inactiveMembers.length === 0 ? (
                       <tr>
                         <td className="px-4 py-4 text-slate-400" colSpan={3}>
-                          No inactive members yet.
+                          ยังไม่มีรายชื่อที่สิ้นสุด
                         </td>
                       </tr>
                     ) : (
                       inactiveMembers.map((member) => (
                         <tr
                           key={member.id}
-                          className="border-t border-slate-800 text-slate-200"
+                          className="table-row-hover text-slate-200"
                         >
                           <td className="px-4 py-3">
-                            {getWorkerName(member.workers) ?? "Unknown"}
+                            {getWorkerName(member.workers) ?? "ไม่ทราบชื่อ"}
                           </td>
                           <td className="px-4 py-3">
                             {member.end_date
                               ? new Date(
                                   `${member.end_date}T00:00:00`,
-                                ).toLocaleDateString()
+                                ).toLocaleDateString("th-TH")
                               : "-"}
                           </td>
                           <td className="px-4 py-3">
                             {member.ended_reason
-                              ? member.ended_reason.replace(/_/g, " ")
+                              ? removalReasons.find(
+                                  (reason) =>
+                                    reason.value === member.ended_reason,
+                                )?.label ?? member.ended_reason.replace(/_/g, " ")
                               : "-"}
                           </td>
                         </tr>

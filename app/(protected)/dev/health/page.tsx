@@ -15,7 +15,7 @@ type HealthResponse = {
 };
 
 /**
- * Simple UI for validating Supabase connectivity during development.
+ * UI สำหรับตรวจสอบการเชื่อมต่อ Supabase ระหว่างการพัฒนา
  */
 export default function DevHealthPage() {
   const [data, setData] = useState<HealthResponse | null>(null);
@@ -39,7 +39,8 @@ export default function DevHealthPage() {
             serviceKeyPresent: false,
             queryOk: false,
             serverReachable: false,
-            errorSummary: err instanceof Error ? err.message : "Unknown error",
+            errorSummary:
+              err instanceof Error ? err.message : "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ",
           });
         }
       } finally {
@@ -56,23 +57,27 @@ export default function DevHealthPage() {
     };
   }, []);
 
-  const statusColor = data?.queryOk ? "text-green-600" : "text-red-600";
+  const statusColor = data?.queryOk
+    ? "text-emerald-300"
+    : "text-rose-300";
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-6">
-      <h1 className="text-2xl font-semibold">Supabase Health Check</h1>
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-6 text-[#E7EEF8]">
+      <h1 className="text-2xl font-semibold">ตรวจสุขภาพ Supabase</h1>
       {loading ? (
-        <p>Loading health status…</p>
+        <p>กำลังตรวจสอบสถานะ...</p>
       ) : (
         <p className={`text-lg font-medium ${statusColor}`}>
-          {data?.queryOk ? "OK" : data?.errorSummary || "Supabase query failed"}
+          {data?.queryOk
+            ? "ปกติ"
+            : data?.errorSummary || "การเชื่อมต่อ Supabase ล้มเหลว"}
         </p>
       )}
-      <section className="rounded border border-slate-200 bg-slate-50 p-4">
-        <h2 className="text-sm font-semibold uppercase text-slate-500">
-          Raw Response
+      <section className="rounded-xl border border-white/5 bg-[#0B1220] p-4">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">
+          ผลลัพธ์ดิบ
         </h2>
-        <pre className="mt-2 overflow-auto text-sm">
+        <pre className="mt-2 overflow-auto text-sm text-slate-300">
           {JSON.stringify(data, null, 2)}
         </pre>
       </section>

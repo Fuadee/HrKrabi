@@ -3,9 +3,59 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 body {
-  @apply bg-slate-950 text-slate-100;
+  @apply bg-[#050814] text-[#E7EEF8];
+}
+
+@layer components {
+  .card-surface {
+    @apply rounded-xl border border-white/5 bg-[#0B1220] shadow-[0_12px_28px_rgba(5,8,20,0.45)];
+  }
+
+  .section-header {
+    @apply flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/5 bg-[#0B1220] px-4 py-3 shadow-[0_12px_28px_rgba(5,8,20,0.45)];
+  }
+
+  .section-header-title {
+    @apply text-sm font-semibold uppercase tracking-[0.32em] text-[#D4AF37];
+  }
+
+  .section-header-subtitle {
+    @apply text-xs text-slate-400;
+  }
+
+  .table-header-cell {
+    @apply text-[11px] font-semibold uppercase tracking-widest text-slate-400;
+  }
+
+  .table-row-hover {
+    @apply transition hover:bg-[#101A33];
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold;
+  }
+
+  .btn-gold {
+    @apply rounded-md border border-[#D4AF37]/60 px-3 py-2 text-xs font-semibold text-[#D4AF37] transition hover:bg-[#D4AF37]/10 disabled:cursor-not-allowed disabled:opacity-70;
+  }
+
+  .btn-secondary {
+    @apply rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-[#101A33] disabled:cursor-not-allowed disabled:opacity-70;
+  }
+
+  .btn-destructive {
+    @apply rounded-md border border-rose-400/60 px-3 py-2 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-70;
+  }
+
+  .input-premium {
+    @apply w-full rounded-md border border-white/10 bg-[#0B1220] px-3 py-2 text-sm text-[#E7EEF8] placeholder:text-slate-500 focus:border-[#D4AF37]/60 focus:outline-none;
+  }
+
+  .select-premium {
+    @apply w-full rounded-md border border-white/10 bg-[#0B1220] px-3 py-2 text-sm text-[#E7EEF8] focus:border-[#D4AF37]/60 focus:outline-none;
+  }
 }

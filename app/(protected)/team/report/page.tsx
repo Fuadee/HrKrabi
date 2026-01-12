@@ -23,10 +23,18 @@ type CaseResponse = {
 };
 
 const reasons = [
-  { value: "absent", label: "Absent" },
-  { value: "missing", label: "Missing" },
-  { value: "quit", label: "Quit" },
+  { value: "absent", label: "ขาดงาน" },
+  { value: "missing", label: "ขาดกำลังคน" },
+  { value: "quit", label: "ลาออก" },
 ];
+
+const workerStatusLabels: Record<string, string> = {
+  active: "ปฏิบัติงาน",
+  inactive: "สิ้นสุดแล้ว",
+};
+
+const formatWorkerStatus = (value: string) =>
+  workerStatusLabels[value] ?? value;
 
 export default function TeamReportPage() {
   const router = useRouter();
@@ -71,7 +79,7 @@ export default function TeamReportPage() {
       }
 
       if (profileError || !profile) {
-        setError(profileError?.message ?? "Unable to load profile.");
+        setError(profileError?.message ?? "ไม่สามารถโหลดโปรไฟล์ได้");
         setLoading(false);
         return;
       }
@@ -80,14 +88,14 @@ export default function TeamReportPage() {
 
       if (profile.role !== "team_lead") {
         const redirectTarget = getDefaultRouteForRole(profile.role);
-        setError("Only team leads can report cases.");
+        setError("เฉพาะหัวหน้าทีมเท่านั้นที่รายงานเคสได้");
         setLoading(false);
         router.replace(redirectTarget);
         return;
       }
 
       if (!profile.team_id) {
-        setError("No team assigned to your profile.");
+        setError("โปรไฟล์ของคุณยังไม่ได้ระบุทีม");
         setLoading(false);
         return;
       }
@@ -137,7 +145,7 @@ export default function TeamReportPage() {
       }
 
       if (!workerId) {
-        setError("Select a worker to report.");
+        setError("กรุณาเลือกผู้ปฏิบัติงานเพื่อรายงาน");
         setSubmitting(false);
         return;
       }
@@ -162,7 +170,7 @@ export default function TeamReportPage() {
       };
 
       if (!response.ok) {
-        setError(payload.error ?? "Failed to report case.");
+        setError(payload.error ?? "ไม่สามารถรายงานเคสได้");
         setSubmitting(false);
         return;
       }
@@ -178,55 +186,55 @@ export default function TeamReportPage() {
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "Unexpected error.",
+          : "เกิดข้อผิดพลาดที่ไม่คาดคิด",
       );
       setSubmitting(false);
     }
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-white">
-      <div className="w-full max-w-xl space-y-4 rounded-xl border border-slate-800 bg-slate-950/60 p-6 text-left">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-[#E7EEF8]">
+      <div className="w-full max-w-xl space-y-4 rounded-2xl border border-white/5 bg-[#0B1220]/80 p-6 text-left shadow-[0_20px_60px_rgba(5,8,20,0.45)]">
         <div>
-          <h1 className="text-2xl font-semibold">Report absence case</h1>
+          <h1 className="text-2xl font-semibold">รายงานเคสขาดงาน</h1>
           <p className="text-sm text-slate-400">
-            One-click report for missing or absent workers.
+            รายงานผู้ปฏิบัติงานที่ขาดงานหรือขาดกำลังคน
           </p>
         </div>
         {loading ? (
-          <p className="text-sm text-slate-300">Loading team data...</p>
+          <p className="text-sm text-slate-300">กำลังโหลดข้อมูลทีม...</p>
         ) : null}
         {!loading && role !== "team_lead" ? (
           <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
-            {error ?? "Access restricted."}
+            {error ?? "ไม่มีสิทธิ์เข้าถึง"}
           </p>
         ) : null}
         {!loading && role === "team_lead" ? (
           <div className="space-y-4">
             <label className="block text-sm font-medium text-slate-200">
-              Select worker
+              เลือกผู้ปฏิบัติงาน
               <select
                 value={workerId}
                 onChange={(event) => setWorkerId(event.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-white focus:border-slate-400 focus:outline-none"
+                className="select-premium mt-1"
               >
                 {sortedWorkers.length === 0 ? (
-                  <option value="">No workers available</option>
+                  <option value="">ไม่มีรายชื่อให้เลือก</option>
                 ) : (
                   sortedWorkers.map((worker) => (
                     <option key={worker.id} value={worker.id}>
-                      {worker.full_name} ({worker.status})
+                      {worker.full_name} ({formatWorkerStatus(worker.status)})
                     </option>
                   ))
                 )}
               </select>
             </label>
             <label className="block text-sm font-medium text-slate-200">
-              Reason
+              เหตุผล
               <select
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-white focus:border-slate-400 focus:outline-none"
+                className="select-premium mt-1"
               >
                 {reasons.map((item) => (
                   <option key={item.value} value={item.value}>
@@ -236,22 +244,22 @@ export default function TeamReportPage() {
               </select>
             </label>
             <label className="block text-sm font-medium text-slate-200">
-              Last seen date (optional)
+              วันที่พบล่าสุด (ถ้ามี)
               <input
                 type="date"
                 value={lastSeenDate}
                 onChange={(event) => setLastSeenDate(event.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-white focus:border-slate-400 focus:outline-none"
+                className="input-premium mt-1"
               />
             </label>
             <label className="block text-sm font-medium text-slate-200">
-              Note (optional)
+              หมายเหตุ (ถ้ามี)
               <textarea
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
                 rows={4}
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-white focus:border-slate-400 focus:outline-none"
-                placeholder="Extra context for the case"
+                className="input-premium mt-1"
+                placeholder="รายละเอียดเพิ่มเติมสำหรับเคสนี้"
               />
             </label>
             {error ? (
@@ -261,16 +269,17 @@ export default function TeamReportPage() {
             ) : null}
             {success ? (
               <p className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
-                Case reported: {success.id} at {success.reported_at}
+                รายงานเคสสำเร็จ: {success.id} เมื่อ{" "}
+                {new Date(success.reported_at).toLocaleString("th-TH")}
               </p>
             ) : null}
             <button
               type="button"
               onClick={handleSubmit}
               disabled={submitting || sortedWorkers.length === 0}
-              className="w-full rounded-md bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70"
+              className="btn-gold w-full text-sm"
             >
-              {submitting ? "Reporting..." : "Report Case"}
+              {submitting ? "กำลังรายงาน..." : "รายงานเคส"}
             </button>
           </div>
         ) : null}
