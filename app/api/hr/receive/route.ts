@@ -5,7 +5,11 @@ import { calculateBusinessDeadline } from "@/lib/businessDays";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
 
 type ReceivePayload = {
+  caseId?: string;
   case_id?: string;
+  signedBy?: string;
+  note?: string;
+  documents?: { doc_scope?: string; doc_no?: string }[];
 };
 
 function getSupabaseAnonClient() {
@@ -50,11 +54,59 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = (await request.json()) as ReceivePayload;
-    const caseId = payload.case_id?.trim();
+    const caseId = (payload.caseId ?? payload.case_id)?.trim();
+    const signedBy = payload.signedBy?.trim();
+    const note = payload.note?.trim() ?? null;
+    const documents = Array.isArray(payload.documents)
+      ? payload.documents
+          .map((doc) => ({
+            doc_scope: doc.doc_scope?.trim(),
+            doc_no: doc.doc_no?.trim(),
+          }))
+          .filter((doc) => doc.doc_scope || doc.doc_no)
+      : [];
 
     if (!caseId) {
       return NextResponse.json(
         { error: "Missing absence case id." },
+        { status: 400 },
+      );
+    }
+
+    if (!signedBy) {
+      return NextResponse.json(
+        { error: "Signed by is required." },
+        { status: 400 },
+      );
+    }
+
+    if (documents.length < 2) {
+      return NextResponse.json(
+        { error: "At least two documents are required." },
+        { status: 400 },
+      );
+    }
+
+    if (documents.some((doc) => !doc.doc_scope || !doc.doc_no)) {
+      return NextResponse.json(
+        { error: "Each document needs a scope and document number." },
+        { status: 400 },
+      );
+    }
+
+    const normalizedScopes = new Set(
+      documents.map((doc) => doc.doc_scope?.toUpperCase()),
+    );
+
+    if (
+      !normalizedScopes.has("INTERNAL") ||
+      !normalizedScopes.has("TO_DISTRICT")
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Documents must include INTERNAL (มท.) and TO_DISTRICT (ส่งเขต).",
+        },
         { status: 400 },
       );
     }
@@ -111,6 +163,41 @@ export async function POST(request: NextRequest) {
     if (updateError || !updatedCase) {
       return NextResponse.json(
         { error: updateError?.message ?? "Update failed." },
+        { status: 500 },
+      );
+    }
+
+    const { data: actionData, error: actionError } = await supabase
+      .from("hr_case_actions")
+      .insert({
+        case_id: caseId,
+        action_type: "RECEIVE_SEND",
+        signed_by: signedBy,
+        note,
+      })
+      .select("id")
+      .single<{ id: string }>();
+
+    if (actionError || !actionData) {
+      return NextResponse.json(
+        { error: actionError?.message ?? "Failed to log action." },
+        { status: 500 },
+      );
+    }
+
+    const documentPayload = documents.map((doc) => ({
+      action_id: actionData.id,
+      doc_scope: doc.doc_scope,
+      doc_no: doc.doc_no,
+    }));
+
+    const { error: documentError } = await supabase
+      .from("hr_case_action_documents")
+      .insert(documentPayload);
+
+    if (documentError) {
+      return NextResponse.json(
+        { error: documentError.message ?? "Failed to log documents." },
         { status: 500 },
       );
     }

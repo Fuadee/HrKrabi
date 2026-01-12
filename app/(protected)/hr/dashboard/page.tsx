@@ -3,6 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import {
+  ActionModal,
+  ActionModalMode,
+  DocumentInput,
+} from "@/components/hr/ActionModal";
+import { HistoryModal } from "@/components/hr/HistoryModal";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 
 type Profile = {
@@ -30,6 +36,13 @@ type CaseRow = {
 type CaseResponse = {
   data?: CaseRow;
   error?: string;
+};
+
+type ActionModalState = {
+  caseId: string;
+  mode: ActionModalMode;
+  initialReplacementName?: string;
+  initialReplacementStartDate?: string;
 };
 
 type SlaBadge = {
@@ -113,9 +126,9 @@ export default function HrDashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [actionCaseId, setActionCaseId] = useState<string | null>(null);
-  const [foundCaseId, setFoundCaseId] = useState<string | null>(null);
-  const [replacementName, setReplacementName] = useState("");
-  const [replacementStartDate, setReplacementStartDate] = useState("");
+  const [actionModalState, setActionModalState] =
+    useState<ActionModalState | null>(null);
+  const [historyCaseId, setHistoryCaseId] = useState<string | null>(null);
 
   const sortedCases = useMemo(
     () =>
@@ -279,7 +292,14 @@ export default function HrDashboardPage() {
     return sessionData.session?.access_token ?? null;
   };
 
-  const handleReceive = async (caseId: string) => {
+  const handleReceive = async (
+    caseId: string,
+    payload: {
+      signedBy: string;
+      note: string;
+      documents: DocumentInput[];
+    },
+  ) => {
     setActionCaseId(caseId);
     setError(null);
 
@@ -297,7 +317,15 @@ export default function HrDashboardPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ case_id: caseId }),
+        body: JSON.stringify({
+          caseId,
+          signedBy: payload.signedBy,
+          note: payload.note,
+          documents: payload.documents.map((doc) => ({
+            doc_scope: doc.docScope,
+            doc_no: doc.docNo,
+          })),
+        }),
       });
 
       const payload = (await response.json()) as CaseResponse;
@@ -312,6 +340,7 @@ export default function HrDashboardPage() {
         updateCaseRow(payload.data);
       }
 
+      setActionModalState(null);
       setActionCaseId(null);
     } catch (actionError) {
       setError(
@@ -326,6 +355,13 @@ export default function HrDashboardPage() {
   const handleRecordOutcome = async (
     caseId: string,
     outcome: "found" | "not_found",
+    payload: {
+      signedBy: string;
+      note: string;
+      documents: DocumentInput[];
+      replacementWorkerName?: string;
+      replacementStartDate?: string;
+    },
   ) => {
     setActionCaseId(caseId);
     setError(null);
@@ -347,10 +383,16 @@ export default function HrDashboardPage() {
         body: JSON.stringify({
           caseId,
           outcome,
-          replacement_worker_name:
-            outcome === "found" ? replacementName.trim() : undefined,
-          replacement_start_date:
-            outcome === "found" ? replacementStartDate : undefined,
+          signedBy: payload.signedBy,
+          note: payload.note,
+          documents: payload.documents.map((doc) => ({
+            doc_scope: doc.docScope,
+            doc_no: doc.docNo,
+          })),
+          replacementWorkerName:
+            outcome === "found" ? payload.replacementWorkerName : undefined,
+          replacementStartDate:
+            outcome === "found" ? payload.replacementStartDate : undefined,
         }),
       });
 
@@ -366,9 +408,7 @@ export default function HrDashboardPage() {
         updateCaseRow(payload.data);
       }
 
-      setFoundCaseId(null);
-      setReplacementName("");
-      setReplacementStartDate("");
+      setActionModalState(null);
       setActionCaseId(null);
     } catch (actionError) {
       setError(
@@ -378,6 +418,27 @@ export default function HrDashboardPage() {
       );
       setActionCaseId(null);
     }
+  };
+
+  const submitActionModal = async (payload: {
+    signedBy: string;
+    note: string;
+    documents: DocumentInput[];
+    replacementWorkerName?: string;
+    replacementStartDate?: string;
+  }) => {
+    if (!actionModalState) {
+      return;
+    }
+
+    if (actionModalState.mode === "receive") {
+      await handleReceive(actionModalState.caseId, payload);
+      return;
+    }
+
+    const outcome =
+      actionModalState.mode === "record_found" ? "found" : "not_found";
+    await handleRecordOutcome(actionModalState.caseId, outcome, payload);
   };
 
   const handleApproveSwap = async (caseId: string) => {
@@ -584,7 +645,13 @@ export default function HrDashboardPage() {
                               {isPending ? (
                                 <button
                                   type="button"
-                                  onClick={() => handleReceive(caseItem.id)}
+                                  onClick={() => {
+                                    setActionModalState({
+                                      caseId: caseItem.id,
+                                      mode: "receive",
+                                    });
+                                    setError(null);
+                                  }}
                                   disabled={actionCaseId === caseItem.id}
                                   className="rounded-md bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70"
                                 >
@@ -595,94 +662,32 @@ export default function HrDashboardPage() {
                               ) : null}
                               {isAwaiting && isOpen ? (
                                 <>
-                                  {foundCaseId === caseItem.id ? (
-                                    <div className="space-y-2 rounded-md border border-slate-800 bg-slate-900/40 p-2">
-                                      <div>
-                                        <label className="text-xs text-slate-300">
-                                          Replacement name
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={replacementName}
-                                          onChange={(event) =>
-                                            setReplacementName(event.target.value)
-                                          }
-                                          className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-white"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="text-xs text-slate-300">
-                                          Start date
-                                        </label>
-                                        <input
-                                          type="date"
-                                          value={replacementStartDate}
-                                          onChange={(event) =>
-                                            setReplacementStartDate(event.target.value)
-                                          }
-                                          className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-white"
-                                        />
-                                      </div>
-                                      <div className="flex gap-2">
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            if (!replacementName.trim()) {
-                                              setError(
-                                                "Replacement worker name is required.",
-                                              );
-                                              return;
-                                            }
-                                            if (!replacementStartDate) {
-                                              setError(
-                                                "Replacement start date is required.",
-                                              );
-                                              return;
-                                            }
-                                            handleRecordOutcome(caseItem.id, "found");
-                                          }}
-                                          disabled={actionCaseId === caseItem.id}
-                                          className="rounded-md bg-emerald-400 px-2 py-1 text-xs font-semibold text-slate-900 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-70"
-                                        >
-                                          {actionCaseId === caseItem.id
-                                            ? "Saving..."
-                                            : "Save"}
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setFoundCaseId(null);
-                                            setReplacementName("");
-                                            setReplacementStartDate("");
-                                            setError(null);
-                                          }}
-                                          className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-200"
-                                        >
-                                          Cancel
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setFoundCaseId(caseItem.id);
-                                        setReplacementName(
-                                          caseItem.replacement_worker_name ?? "",
-                                        );
-                                        setReplacementStartDate(
-                                          caseItem.replacement_start_date ?? "",
-                                        );
-                                        setError(null);
-                                      }}
-                                      className="rounded-md border border-emerald-400/60 px-3 py-2 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/10"
-                                    >
-                                      Record Found
-                                    </button>
-                                  )}
                                   <button
                                     type="button"
-                                    onClick={() => handleRecordOutcome(caseItem.id, "not_found")}
+                                    onClick={() => {
+                                      setActionModalState({
+                                        caseId: caseItem.id,
+                                        mode: "record_found",
+                                        initialReplacementName:
+                                          caseItem.replacement_worker_name ?? "",
+                                        initialReplacementStartDate:
+                                          caseItem.replacement_start_date ?? "",
+                                      });
+                                      setError(null);
+                                    }}
+                                    className="rounded-md border border-emerald-400/60 px-3 py-2 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/10"
+                                  >
+                                    Record Found
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActionModalState({
+                                        caseId: caseItem.id,
+                                        mode: "record_not_found",
+                                      });
+                                      setError(null);
+                                    }}
                                     disabled={actionCaseId === caseItem.id}
                                     className="rounded-md border border-slate-600 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-slate-800/60 disabled:cursor-not-allowed disabled:opacity-70"
                                   >
@@ -717,6 +722,13 @@ export default function HrDashboardPage() {
                                   Finalized
                                 </span>
                               ) : null}
+                              <button
+                                type="button"
+                                onClick={() => setHistoryCaseId(caseItem.id)}
+                                className="rounded-md border border-slate-700 px-3 py-2 text-xs text-slate-200 transition hover:bg-slate-800/60"
+                              >
+                                History
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -729,6 +741,32 @@ export default function HrDashboardPage() {
           </div>
         ) : null}
       </div>
+      <ActionModal
+        isOpen={Boolean(actionModalState)}
+        mode={actionModalState?.mode ?? "receive"}
+        title={
+          actionModalState?.mode === "receive"
+            ? "Receive & Send Documents"
+            : actionModalState?.mode === "record_found"
+              ? "Record Found Outcome"
+              : "Record Not Found Outcome"
+        }
+        isSubmitting={
+          Boolean(actionModalState) &&
+          actionCaseId === actionModalState?.caseId
+        }
+        initialReplacementName={actionModalState?.initialReplacementName}
+        initialReplacementStartDate={
+          actionModalState?.initialReplacementStartDate
+        }
+        onClose={() => setActionModalState(null)}
+        onSubmit={submitActionModal}
+      />
+      <HistoryModal
+        isOpen={Boolean(historyCaseId)}
+        caseId={historyCaseId}
+        onClose={() => setHistoryCaseId(null)}
+      />
     </main>
   );
 }

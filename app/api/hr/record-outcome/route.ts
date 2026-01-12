@@ -6,8 +6,11 @@ import { getSupabaseServerClient } from "@/lib/supabaseServer";
 type OutcomePayload = {
   caseId?: string;
   outcome?: "found" | "not_found";
-  replacement_worker_name?: string;
-  replacement_start_date?: string;
+  signedBy?: string;
+  note?: string;
+  documents?: { doc_scope?: string; doc_no?: string }[];
+  replacementWorkerName?: string;
+  replacementStartDate?: string;
 };
 
 const allowedOutcomes = new Set(["found", "not_found"]);
@@ -56,6 +59,16 @@ export async function POST(request: NextRequest) {
     const payload = (await request.json()) as OutcomePayload;
     const caseId = payload.caseId?.trim();
     const outcome = payload.outcome;
+    const signedBy = payload.signedBy?.trim();
+    const note = payload.note?.trim() ?? null;
+    const documents = Array.isArray(payload.documents)
+      ? payload.documents
+          .map((doc) => ({
+            doc_scope: doc.doc_scope?.trim(),
+            doc_no: doc.doc_no?.trim(),
+          }))
+          .filter((doc) => doc.doc_scope || doc.doc_no)
+      : [];
 
     if (!caseId || !outcome || !allowedOutcomes.has(outcome)) {
       return NextResponse.json(
@@ -64,15 +77,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!signedBy) {
+      return NextResponse.json(
+        { error: "Signed by is required." },
+        { status: 400 },
+      );
+    }
+
+    if (documents.length < 1) {
+      return NextResponse.json(
+        { error: "At least one document is required." },
+        { status: 400 },
+      );
+    }
+
+    if (documents.some((doc) => !doc.doc_scope || !doc.doc_no)) {
+      return NextResponse.json(
+        { error: "Each document needs a scope and document number." },
+        { status: 400 },
+      );
+    }
+
     if (outcome === "found") {
-      if (!payload.replacement_worker_name?.trim()) {
+      if (!payload.replacementWorkerName?.trim()) {
         return NextResponse.json(
           { error: "Replacement worker name is required." },
           { status: 400 },
         );
       }
 
-      if (!payload.replacement_start_date) {
+      if (!payload.replacementStartDate) {
         return NextResponse.json(
           { error: "Replacement start date is required." },
           { status: 400 },
@@ -117,9 +151,9 @@ export async function POST(request: NextRequest) {
       recruitment_status: outcome,
       recruitment_updated_at: now,
       replacement_worker_name:
-        outcome === "found" ? payload.replacement_worker_name?.trim() : null,
+        outcome === "found" ? payload.replacementWorkerName?.trim() : null,
       replacement_start_date:
-        outcome === "found" ? payload.replacement_start_date : null,
+        outcome === "found" ? payload.replacementStartDate : null,
     };
 
     const { data: updatedCase, error: updateError } = await supabase
@@ -134,6 +168,44 @@ export async function POST(request: NextRequest) {
     if (updateError || !updatedCase) {
       return NextResponse.json(
         { error: updateError?.message ?? "Update failed." },
+        { status: 500 },
+      );
+    }
+
+    const actionType =
+      outcome === "found" ? "RECORD_FOUND" : "RECORD_NOT_FOUND";
+
+    const { data: actionData, error: actionError } = await supabase
+      .from("hr_case_actions")
+      .insert({
+        case_id: caseId,
+        action_type: actionType,
+        signed_by: signedBy,
+        note,
+      })
+      .select("id")
+      .single<{ id: string }>();
+
+    if (actionError || !actionData) {
+      return NextResponse.json(
+        { error: actionError?.message ?? "Failed to log action." },
+        { status: 500 },
+      );
+    }
+
+    const documentPayload = documents.map((doc) => ({
+      action_id: actionData.id,
+      doc_scope: doc.doc_scope,
+      doc_no: doc.doc_no,
+    }));
+
+    const { error: documentError } = await supabase
+      .from("hr_case_action_documents")
+      .insert(documentPayload);
+
+    if (documentError) {
+      return NextResponse.json(
+        { error: documentError.message ?? "Failed to log documents." },
         { status: 500 },
       );
     }
