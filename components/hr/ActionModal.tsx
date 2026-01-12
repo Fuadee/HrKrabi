@@ -3,15 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 
 export type DocumentInput = {
-  docScope: string;
+  docScope: "INTERNAL" | "TO_DISTRICT" | "OTHER";
   docNo: string;
 };
 
 export type ActionModalMode = "receive" | "record_found" | "record_not_found";
 
-type ActionModalPayload = {
+export type ActionModalPayload = {
   signedBy: string;
-  note: string;
+  note?: string;
   documents: DocumentInput[];
   replacementWorkerName?: string;
   replacementStartDate?: string;
@@ -32,7 +32,7 @@ const docScopeOptions = [
   { value: "INTERNAL", label: "INTERNAL (มท.)" },
   { value: "TO_DISTRICT", label: "TO_DISTRICT (ส่งเขต)" },
   { value: "OTHER", label: "OTHER" },
-];
+] as const;
 
 function getDefaultDocuments(mode: ActionModalMode): DocumentInput[] {
   if (mode === "receive") {
@@ -82,7 +82,7 @@ export function ActionModal({
     () =>
       documents
         .map((doc) => ({
-          docScope: doc.docScope.trim(),
+          docScope: doc.docScope,
           docNo: doc.docNo.trim(),
         }))
         .filter((doc) => doc.docScope || doc.docNo),
@@ -142,7 +142,7 @@ export function ActionModal({
 
     onSubmit({
       signedBy: cleanedSignedBy,
-      note: cleanedNote,
+      note: cleanedNote ? cleanedNote : undefined,
       documents: trimmedDocuments,
       replacementWorkerName: isFound ? replacementName.trim() : undefined,
       replacementStartDate: isFound ? replacementStartDate : undefined,
@@ -252,7 +252,8 @@ export function ActionModal({
                     <select
                       value={doc.docScope}
                       onChange={(event) => {
-                        const value = event.target.value;
+                        const value =
+                          event.target.value as DocumentInput["docScope"];
                         setDocuments((prev) =>
                           prev.map((item, itemIndex) =>
                             itemIndex === index
