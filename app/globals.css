@@ -3,59 +3,94 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
-  @apply bg-[#050814] text-[#E7EEF8];
+  @apply bg-gradient-to-b from-app-bg to-app-bg-soft text-text-main;
 }
 
 @layer components {
   .card-surface {
-    @apply rounded-xl border border-white/5 bg-[#0B1220] shadow-[0_12px_28px_rgba(5,8,20,0.45)];
+    @apply rounded-[20px] border border-border-soft bg-surface shadow-card;
   }
 
   .section-header {
-    @apply flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/5 bg-[#0B1220] px-4 py-3 shadow-[0_12px_28px_rgba(5,8,20,0.45)];
+    @apply flex flex-wrap items-center justify-between gap-4 rounded-[20px] border border-border-soft bg-surface px-4 py-3 shadow-card;
   }
 
   .section-header-title {
-    @apply text-sm font-semibold uppercase tracking-[0.32em] text-[#D4AF37];
+    @apply text-sm font-semibold uppercase tracking-[0.24em] text-text-main;
   }
 
   .section-header-subtitle {
-    @apply text-xs text-slate-400;
+    @apply text-xs text-text-muted;
   }
 
   .table-header-cell {
-    @apply text-[11px] font-semibold uppercase tracking-widest text-slate-400;
+    @apply text-[11px] font-semibold uppercase tracking-widest text-text-muted;
   }
 
   .table-row-hover {
-    @apply transition hover:bg-[#101A33];
+    @apply transition hover:bg-[#F7F4FF];
   }
 
   .badge {
-    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold;
+    @apply inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold;
+  }
+
+  .btn-base {
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8134AF]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-app-bg hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-sm;
+  }
+
+  .btn-primary-ig {
+    @apply btn-base text-white hover:shadow-glow;
+    background-image: linear-gradient(
+      90deg,
+      #f58529 0%,
+      #dd2a7b 40%,
+      #8134af 70%,
+      #515bd4 100%
+    );
+    box-shadow: 0 10px 20px rgba(221, 42, 123, 0.18);
+  }
+
+  .btn-success {
+    @apply btn-base text-white;
+    background-image: linear-gradient(90deg, #34d399 0%, #14b8a6 100%);
+  }
+
+  .btn-warning {
+    @apply btn-base text-white;
+    background-image: linear-gradient(90deg, #fbbf24 0%, #fb7185 100%);
+  }
+
+  .btn-ghost {
+    @apply btn-base border border-slate-200 bg-white text-slate-700 hover:bg-slate-50;
+  }
+
+  .btn-danger {
+    @apply btn-base text-white;
+    background-image: linear-gradient(90deg, #fb7185 0%, #f43f5e 100%);
   }
 
   .btn-gold {
-    @apply rounded-md border border-[#D4AF37]/60 px-3 py-2 text-xs font-semibold text-[#D4AF37] transition hover:bg-[#D4AF37]/10 disabled:cursor-not-allowed disabled:opacity-70;
+    @apply btn-primary-ig;
   }
 
   .btn-secondary {
-    @apply rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-[#101A33] disabled:cursor-not-allowed disabled:opacity-70;
+    @apply btn-ghost;
   }
 
   .btn-destructive {
-    @apply rounded-md border border-rose-400/60 px-3 py-2 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-70;
+    @apply btn-danger;
   }
 
   .input-premium {
-    @apply w-full rounded-md border border-white/10 bg-[#0B1220] px-3 py-2 text-sm text-[#E7EEF8] placeholder:text-slate-500 focus:border-[#D4AF37]/60 focus:outline-none;
+    @apply w-full rounded-xl border border-border-soft bg-white px-3 py-2 text-sm text-text-main placeholder:text-slate-400 focus:border-[#8134AF]/40 focus:outline-none focus:ring-2 focus:ring-[#8134AF]/20;
   }
 
   .select-premium {
-    @apply w-full rounded-md border border-white/10 bg-[#0B1220] px-3 py-2 text-sm text-[#E7EEF8] focus:border-[#D4AF37]/60 focus:outline-none;
+    @apply w-full rounded-xl border border-border-soft bg-white px-3 py-2 text-sm text-text-main focus:border-[#8134AF]/40 focus:outline-none focus:ring-2 focus:ring-[#8134AF]/20;
   }
 }

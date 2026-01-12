@@ -154,20 +154,20 @@ export function ActionModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4">
-      <div className="w-full max-w-lg rounded-xl border border-white/5 bg-[#0B1220] text-slate-100 shadow-xl">
-        <div className="border-b border-white/5 px-6 py-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
+      <div className="card-surface w-full max-w-lg text-text-main shadow-soft">
+        <div className="border-b border-border-soft px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold">{title}</h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-text-muted">
                 ระบุผู้ลงนามและเลขที่เอกสาร
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="text-sm text-slate-400 transition hover:text-slate-200"
+              className="text-sm text-text-muted transition hover:text-text-main"
             >
               ปิด
             </button>
@@ -175,12 +175,12 @@ export function ActionModal({
         </div>
         <div className="space-y-4 px-6 py-4 text-sm">
           {formError ? (
-            <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+            <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
               {formError}
             </p>
           ) : null}
           <div className="grid gap-3 md:grid-cols-2">
-            <label className="text-xs text-slate-300">
+            <label className="text-xs text-text-muted">
               ผู้ลงนาม
               <input
                 type="text"
@@ -190,7 +190,7 @@ export function ActionModal({
                 placeholder="ชื่อเจ้าหน้าที่ HR"
               />
             </label>
-            <label className="text-xs text-slate-300">
+            <label className="text-xs text-text-muted">
               หมายเหตุ (ถ้ามี)
               <input
                 type="text"
@@ -204,7 +204,7 @@ export function ActionModal({
 
           {isFound ? (
             <div className="grid gap-3 md:grid-cols-2">
-              <label className="text-xs text-slate-300">
+              <label className="text-xs text-text-muted">
                 ชื่อผู้แทน
                 <input
                   type="text"
@@ -213,7 +213,7 @@ export function ActionModal({
                   className="input-premium mt-1"
                 />
               </label>
-              <label className="text-xs text-slate-300">
+              <label className="text-xs text-text-muted">
                 วันที่เริ่ม
                 <input
                   type="date"
@@ -227,7 +227,7 @@ export function ActionModal({
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-slate-300">เอกสาร</p>
+              <p className="text-xs font-semibold text-text-muted">เอกสาร</p>
               <button
                 type="button"
                 onClick={() =>
@@ -245,9 +245,9 @@ export function ActionModal({
               {documents.map((doc, index) => (
                 <div
                   key={`doc-${index}`}
-                  className="flex flex-col gap-2 rounded-md border border-white/5 bg-[#0E1629] p-3 md:flex-row md:items-center"
+                  className="flex flex-col gap-2 rounded-xl border border-border-soft bg-surface-muted p-3 md:flex-row md:items-center"
                 >
-                  <label className="flex-1 text-xs text-slate-300">
+                  <label className="flex-1 text-xs text-text-muted">
                     ประเภท
                     <select
                       value={doc.docScope}
@@ -271,7 +271,7 @@ export function ActionModal({
                       ))}
                     </select>
                   </label>
-                  <label className="flex-1 text-xs text-slate-300">
+                  <label className="flex-1 text-xs text-text-muted">
                     เลขที่หนังสือ
                     <input
                       type="text"
@@ -305,7 +305,7 @@ export function ActionModal({
             </div>
           </div>
         </div>
-        <div className="flex items-center justify-end gap-2 border-t border-white/5 px-6 py-4">
+        <div className="flex items-center justify-end gap-2 border-t border-border-soft px-6 py-4">
           <button
             type="button"
             onClick={onClose}

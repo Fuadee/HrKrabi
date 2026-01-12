@@ -105,7 +105,7 @@ function getSlaBadge(caseItem: CaseRow): SlaBadge {
     return {
       label: statusLabel,
       className:
-        "badge bg-slate-800/60 text-slate-200 border-slate-600/40",
+        "badge border-slate-200 bg-slate-100 text-slate-700",
     };
   }
 
@@ -119,20 +119,43 @@ function getSlaBadge(caseItem: CaseRow): SlaBadge {
   if (diffDays < 0 || caseItem.hr_status === "sla_expired") {
     return {
       label: statusLabel,
-      className: "badge bg-rose-500/10 text-rose-200 border-rose-500/30",
+      className: "badge border-rose-200 bg-rose-50 text-rose-700",
     };
   }
 
   if (diffDays <= 1) {
     return {
       label: statusLabel,
-      className: "badge bg-amber-500/10 text-amber-200 border-amber-500/30",
+      className: "badge border-amber-200 bg-amber-50 text-amber-700",
     };
   }
 
   return {
     label: statusLabel,
-    className: "badge bg-emerald-500/10 text-emerald-200 border-emerald-500/30",
+    className: "badge border-emerald-200 bg-emerald-50 text-emerald-700",
+  };
+}
+
+function getRecruitmentBadge(caseItem: CaseRow): SlaBadge {
+  const label = formatRecruitmentLabel(caseItem.recruitment_status);
+
+  if (caseItem.recruitment_status === "found") {
+    return {
+      label,
+      className: "badge border-emerald-200 bg-emerald-50 text-emerald-700",
+    };
+  }
+
+  if (caseItem.recruitment_status === "not_found") {
+    return {
+      label,
+      className: "badge border-rose-200 bg-rose-50 text-rose-700",
+    };
+  }
+
+  return {
+    label,
+    className: "badge border-slate-200 bg-slate-100 text-slate-700",
   };
 }
 
@@ -578,37 +601,42 @@ export default function HrDashboardPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-[#E7EEF8]">
-      <div className="w-full max-w-6xl space-y-6 rounded-2xl border border-white/5 bg-[#0B1220]/80 p-6 text-left shadow-[0_20px_60px_rgba(5,8,20,0.45)]">
+    <main className="flex w-full flex-col gap-6 text-left text-text-main">
+      <div className="card-surface w-full space-y-6 p-6">
         <div>
-          <h1 className="text-2xl font-semibold">แดชบอร์ด HR จังหวัด</h1>
-          <p className="text-sm text-slate-400">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              แดชบอร์ด HR จังหวัด
+            </h1>
+            <span className="h-2 w-20 rounded-full bg-ig" />
+          </div>
+          <p className="mt-2 text-sm text-text-muted">
             รับเคส บันทึกผลการสรรหา และปิดงานแทน/ว่าง
           </p>
         </div>
         {loading ? (
-          <p className="text-sm text-slate-300">กำลังโหลดเคส...</p>
+          <p className="text-sm text-text-muted">กำลังโหลดเคส...</p>
         ) : null}
         {!loading && role !== "hr_prov" ? (
-          <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+          <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             {error ?? "ไม่มีสิทธิ์เข้าถึง"}
           </p>
         ) : null}
         {!loading && role === "hr_prov" ? (
           <div className="space-y-6">
             {error ? (
-              <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+              <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
                 {error}
               </p>
             ) : null}
 
             {loadingCases ? (
-              <p className="text-sm text-slate-400">กำลังโหลดเคส...</p>
+              <p className="text-sm text-text-muted">กำลังโหลดเคส...</p>
             ) : null}
 
-            <div className="overflow-hidden rounded-xl border border-white/5">
+            <div className="overflow-hidden rounded-2xl border border-border-soft bg-surface shadow-card">
               <table className="w-full border-collapse text-sm">
-                <thead className="bg-[#0E1629]">
+                <thead className="bg-slate-50">
                   <tr>
                     <th className="table-header-cell px-4 py-3 text-left">
                       ทีม
@@ -642,16 +670,17 @@ export default function HrDashboardPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-border-soft">
                   {sortedCases.length === 0 ? (
                     <tr>
-                      <td className="px-4 py-4 text-slate-400" colSpan={10}>
+                      <td className="px-4 py-4 text-text-muted" colSpan={10}>
                         ยังไม่มีเคสการขาดงาน
                       </td>
                     </tr>
                   ) : (
                     sortedCases.map((caseItem) => {
                       const badge = getSlaBadge(caseItem);
+                      const recruitmentBadge = getRecruitmentBadge(caseItem);
                       const isPending = caseItem.hr_status === "pending";
                       const isAwaiting =
                         caseItem.recruitment_status === "awaiting";
@@ -672,7 +701,11 @@ export default function HrDashboardPage() {
                       return (
                         <tr
                           key={caseItem.id}
-                          className="table-row-hover text-slate-200"
+                          className={`table-row-hover text-sm text-text-main ${
+                            actionCaseId === caseItem.id
+                              ? "bg-lavender-tint"
+                              : ""
+                          }`}
                         >
                           <td className="px-4 py-3">
                             {getTeamName(caseItem.teams)}
@@ -681,7 +714,7 @@ export default function HrDashboardPage() {
                             <div className="flex flex-col gap-1">
                               <span>{getWorkerName(caseItem.workers)}</span>
                               {caseItem.removedFromTeam ? (
-                                <span className="badge w-fit border-rose-400/30 bg-rose-500/10 text-rose-200">
+                                <span className="badge w-fit border-rose-200 bg-rose-50 text-rose-700">
                                   ถูกนำออกจากทีม
                                 </span>
                               ) : null}
@@ -702,9 +735,9 @@ export default function HrDashboardPage() {
                             {formatDate(caseItem.sla_deadline_at)}
                           </td>
                           <td className="px-4 py-3">
-                            {formatRecruitmentLabel(
-                              caseItem.recruitment_status,
-                            )}
+                            <span className={recruitmentBadge.className}>
+                              {recruitmentBadge.label}
+                            </span>
                           </td>
                           <td className="px-4 py-3">
                             {caseItem.replacement_worker_name ?? "-"}
@@ -725,7 +758,7 @@ export default function HrDashboardPage() {
                                     setError(null);
                                   }}
                                   disabled={actionCaseId === caseItem.id}
-                                  className="btn-gold"
+                                  className="btn-primary-ig"
                                 >
                                   {actionCaseId === caseItem.id
                                     ? "กำลังส่ง..."
@@ -749,7 +782,7 @@ export default function HrDashboardPage() {
                                       });
                                       setError(null);
                                     }}
-                                    className="btn-gold"
+                                    className="btn-success"
                                   >
                                     บันทึก: พบคนแทน
                                   </button>
@@ -763,7 +796,7 @@ export default function HrDashboardPage() {
                                       setError(null);
                                     }}
                                     disabled={actionCaseId === caseItem.id}
-                                    className="btn-secondary"
+                                    className="btn-warning"
                                   >
                                     {actionCaseId === caseItem.id
                                       ? "กำลังบันทึก..."
@@ -778,7 +811,7 @@ export default function HrDashboardPage() {
                                   disabled={
                                     actionCaseId === caseItem.id || !isWithinSla
                                   }
-                                  className="btn-gold"
+                                  className="btn-success"
                                 >
                                   ปิดงาน
                                 </button>
@@ -788,20 +821,20 @@ export default function HrDashboardPage() {
                                   type="button"
                                   onClick={() => handleMarkVacant(caseItem.id)}
                                   disabled={actionCaseId === caseItem.id}
-                                  className="btn-destructive"
+                                  className="btn-danger"
                                 >
                                   ปิดงาน: ตำแหน่งว่าง
                                 </button>
                               ) : null}
                               {!isPending && !isOpen ? (
-                                <span className="text-xs text-slate-400">
+                                <span className="text-xs text-text-muted">
                                   ปิดงานแล้ว
                                 </span>
                               ) : null}
                               <button
                                 type="button"
                                 onClick={() => setHistoryCaseId(caseItem.id)}
-                                className="btn-secondary"
+                                className="btn-ghost"
                               >
                                 ประวัติ
                               </button>
