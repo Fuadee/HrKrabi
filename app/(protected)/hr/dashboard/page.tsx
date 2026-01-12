@@ -15,6 +15,34 @@ type Profile = {
   role: string;
 };
 
+type TeamRow = {
+  id: string;
+  name: string;
+  capacity?: number | null;
+  district_id?: string | null;
+  districts?: { id: string; name: string } | { id: string; name: string }[] | null;
+};
+
+type DistrictSummary = {
+  id: string;
+  name: string;
+  teams_count: number;
+  missing_total: number;
+  open_cases: number;
+  overdue: number;
+  last_update: string | null;
+};
+
+type DashboardSummary = {
+  total_teams: number;
+  total_capacity: number;
+  active_headcount: number;
+  missing: number;
+  open_cases_in_sla: number;
+  open_cases_overdue: number;
+  due_24h: number;
+};
+
 type CaseRow = {
   id: string;
   team_id: string;
@@ -28,7 +56,10 @@ type CaseRow = {
   replacement_worker_name: string | null;
   replacement_start_date: string | null;
   final_status: string;
-  teams: { id: string; name: string; capacity?: number | null } | { id: string; name: string; capacity?: number | null }[] | null;
+  teams:
+    | TeamRow
+    | TeamRow[]
+    | null;
   workers: { id: string; full_name: string; national_id?: string | null; status?: string | null } | { id: string; full_name: string; national_id?: string | null; status?: string | null }[] | null;
   removedFromTeam?: boolean;
 };
@@ -43,6 +74,13 @@ type ActionModalState = {
   mode: ActionModalMode;
   initialReplacementName?: string;
   initialReplacementStartDate?: string;
+};
+
+type DashboardResponse = {
+  summary: DashboardSummary;
+  districts: DistrictSummary[];
+  teams: TeamRow[];
+  cases: CaseRow[];
 };
 
 type SlaBadge = {
@@ -95,6 +133,14 @@ function formatDate(dateValue: string | null) {
   return new Date(`${dateValue}T00:00:00`).toLocaleDateString();
 }
 
+function formatDateTime(value: string | null) {
+  if (!value) {
+    return "-";
+  }
+
+  return new Date(value).toLocaleString();
+}
+
 function getTeamName(teams: CaseRow["teams"]) {
   if (!teams) {
     return "-";
@@ -105,6 +151,23 @@ function getTeamName(teams: CaseRow["teams"]) {
   }
 
   return teams.name ?? "-";
+}
+
+function getTeamDistrict(teams: CaseRow["teams"]) {
+  if (!teams) {
+    return "-";
+  }
+
+  const team = Array.isArray(teams) ? teams[0] : teams;
+  if (!team?.districts) {
+    return "-";
+  }
+
+  if (Array.isArray(team.districts)) {
+    return team.districts[0]?.name ?? "-";
+  }
+
+  return team.districts.name ?? "-";
 }
 
 function getWorkerName(workers: CaseRow["workers"]) {
@@ -122,13 +185,23 @@ function getWorkerName(workers: CaseRow["workers"]) {
 export default function HrDashboardPage() {
   const router = useRouter();
   const [cases, setCases] = useState<CaseRow[]>([]);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [districts, setDistricts] = useState<DistrictSummary[]>([]);
+  const [teams, setTeams] = useState<TeamRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingDashboard, setLoadingDashboard] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [actionCaseId, setActionCaseId] = useState<string | null>(null);
   const [actionModalState, setActionModalState] =
     useState<ActionModalState | null>(null);
   const [historyCaseId, setHistoryCaseId] = useState<string | null>(null);
+  const [selectedDistrictId, setSelectedDistrictId] = useState("");
+  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [recruitmentFilter, setRecruitmentFilter] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const sortedCases = useMemo(
     () =>
@@ -139,11 +212,98 @@ export default function HrDashboardPage() {
       ),
     [cases],
   );
+  const availableTeams = useMemo(() => {
+    if (!selectedDistrictId) {
+      return teams;
+    }
+
+    return teams.filter((team) => team.district_id === selectedDistrictId);
+  }, [selectedDistrictId, teams]);
+
+  useEffect(() => {
+    if (
+      selectedTeamId &&
+      !availableTeams.some((team) => team.id === selectedTeamId)
+    ) {
+      setSelectedTeamId("");
+    }
+  }, [availableTeams, selectedTeamId]);
+
+  const getAccessToken = async () => {
+    const supabase = getSupabaseBrowserClient();
+    const { data: sessionData } = await supabase.auth.getSession();
+    return sessionData.session?.access_token ?? null;
+  };
+
+  const fetchDashboard = async (options?: { skipLoading?: boolean }) => {
+    if (!options?.skipLoading) {
+      setLoadingDashboard(true);
+    }
+    setError(null);
+
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        router.replace("/login");
+        return;
+      }
+
+      const params = new URLSearchParams();
+      if (selectedDistrictId) {
+        params.set("district_id", selectedDistrictId);
+      }
+      if (selectedTeamId) {
+        params.set("team_id", selectedTeamId);
+      }
+      if (statusFilter) {
+        params.set("status", statusFilter);
+      }
+      if (recruitmentFilter) {
+        params.set("recruitment_status", recruitmentFilter);
+      }
+      if (startDate) {
+        params.set("start_date", startDate);
+      }
+      if (endDate) {
+        params.set("end_date", endDate);
+      }
+
+      const query = params.toString();
+      const response = await fetch(`/api/hr/dashboard${query ? `?${query}` : ""}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const payload = (await response.json()) as DashboardResponse & {
+        error?: string;
+      };
+
+      if (!response.ok) {
+        setError(payload.error ?? "Failed to load dashboard data.");
+        setLoadingDashboard(false);
+        return;
+      }
+
+      setSummary(payload.summary);
+      setDistricts(payload.districts);
+      setTeams(payload.teams);
+      setCases(payload.cases);
+      setLoadingDashboard(false);
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Unexpected error.",
+      );
+      setLoadingDashboard(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
 
-    const loadCases = async () => {
+    const loadProfile = async () => {
       const supabase = getSupabaseBrowserClient();
       const { data: userData, error: userError } =
         await supabase.auth.getUser();
@@ -177,120 +337,30 @@ export default function HrDashboardPage() {
         return;
       }
 
-      const { data: casesData, error: casesError } = await supabase
-        .from("absence_cases")
-        .select(
-          "id, team_id, worker_id, membership_id, reason, reported_at, hr_status, sla_deadline_at, recruitment_status, replacement_worker_name, replacement_start_date, final_status, teams:team_id(id, name, capacity), workers:worker_id(id, full_name, national_id, status)",
-        )
-        .order("reported_at", { ascending: false })
-        .limit(50);
-
-      if (!isMounted) {
-        return;
-      }
-
-      if (casesError) {
-        setError(casesError.message);
-        setLoading(false);
-        return;
-      }
-
-      const caseRows: CaseRow[] = casesData ?? [];
-      const missingMembershipCases = caseRows.filter(
-        (caseItem) => !caseItem.membership_id,
-      );
-      const workerIds = Array.from(
-        new Set(missingMembershipCases.map((caseItem) => caseItem.worker_id)),
-      );
-      const teamIds = Array.from(
-        new Set(missingMembershipCases.map((caseItem) => caseItem.team_id)),
-      );
-      const membershipIds = Array.from(
-        new Set(
-          caseRows
-            .map((caseItem) => caseItem.membership_id)
-            .filter((membershipId): membershipId is string =>
-              Boolean(membershipId),
-            ),
-        ),
-      );
-      const activeMembershipLookup = new Set<string>();
-      const membershipActiveLookup = new Map<string, boolean>();
-
-      if (workerIds.length > 0 && teamIds.length > 0) {
-        const { data: membershipData, error: membershipError } = await supabase
-          .from("team_memberships")
-          .select("team_id, worker_id")
-          .eq("active", true)
-          .in("worker_id", workerIds)
-          .in("team_id", teamIds);
-
-        if (membershipError) {
-          setError(membershipError.message);
-          setLoading(false);
-          return;
-        }
-
-        membershipData?.forEach((membership) => {
-          activeMembershipLookup.add(
-            `${membership.team_id}-${membership.worker_id}`,
-          );
-        });
-      }
-
-      if (membershipIds.length > 0) {
-        const { data: membershipData, error: membershipError } = await supabase
-          .from("team_memberships")
-          .select("id, active")
-          .in("id", membershipIds);
-
-        if (membershipError) {
-          setError(membershipError.message);
-          setLoading(false);
-          return;
-        }
-
-        membershipData?.forEach((membership) => {
-          membershipActiveLookup.set(membership.id, membership.active);
-        });
-      }
-
-      const normalizedCases = caseRows.map((caseItem) => {
-        const key = `${caseItem.team_id}-${caseItem.worker_id}`;
-        const hasActiveMembership = caseItem.membership_id
-          ? membershipActiveLookup.get(caseItem.membership_id) ?? false
-          : activeMembershipLookup.has(key);
-
-        return {
-          ...caseItem,
-          removedFromTeam: !hasActiveMembership,
-        };
-      });
-
-      setCases(normalizedCases);
       setLoading(false);
     };
 
-    loadCases();
+    loadProfile();
 
     return () => {
       isMounted = false;
     };
   }, [router]);
 
-  const updateCaseRow = (updatedCase: CaseRow) => {
-    setCases((prev) =>
-      prev.map((caseItem) =>
-        caseItem.id === updatedCase.id ? updatedCase : caseItem,
-      ),
-    );
-  };
-
-  const getAccessToken = async () => {
-    const supabase = getSupabaseBrowserClient();
-    const { data: sessionData } = await supabase.auth.getSession();
-    return sessionData.session?.access_token ?? null;
-  };
+  useEffect(() => {
+    if (role !== "hr_prov") {
+      return;
+    }
+    fetchDashboard();
+  }, [
+    role,
+    selectedDistrictId,
+    selectedTeamId,
+    statusFilter,
+    recruitmentFilter,
+    startDate,
+    endDate,
+  ]);
 
   const handleReceive = async (
     caseId: string,
@@ -333,7 +403,7 @@ export default function HrDashboardPage() {
       }
 
       if (responsePayload.data) {
-        updateCaseRow(responsePayload.data);
+        await fetchDashboard({ skipLoading: true });
       }
 
       setActionModalState(null);
@@ -395,7 +465,7 @@ export default function HrDashboardPage() {
       }
 
       if (responsePayload.data) {
-        updateCaseRow(responsePayload.data);
+        await fetchDashboard({ skipLoading: true });
       }
 
       setActionModalState(null);
@@ -455,7 +525,7 @@ export default function HrDashboardPage() {
       }
 
       if (payload.data) {
-        updateCaseRow(payload.data);
+        await fetchDashboard({ skipLoading: true });
       }
 
       setActionCaseId(null);
@@ -499,7 +569,7 @@ export default function HrDashboardPage() {
       }
 
       if (payload.data) {
-        updateCaseRow(payload.data);
+        await fetchDashboard({ skipLoading: true });
       }
 
       setActionCaseId(null);
@@ -532,16 +602,204 @@ export default function HrDashboardPage() {
           </p>
         ) : null}
         {!loading && role === "hr_prov" ? (
-          <div className="space-y-3">
+          <div className="space-y-6">
             {error ? (
               <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
                 {error}
               </p>
             ) : null}
+            <div className="grid gap-4 rounded-lg border border-slate-800 bg-slate-900/40 p-4 md:grid-cols-3 lg:grid-cols-6">
+              <div>
+                <p className="text-xs uppercase text-slate-400">Total teams</p>
+                <p className="text-lg font-semibold text-white">
+                  {summary?.total_teams ?? 0}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase text-slate-400">Capacity</p>
+                <p className="text-lg font-semibold text-white">
+                  {summary?.total_capacity ?? 0}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase text-slate-400">
+                  Active headcount
+                </p>
+                <p className="text-lg font-semibold text-white">
+                  {summary?.active_headcount ?? 0}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase text-slate-400">Missing</p>
+                <p className="text-lg font-semibold text-white">
+                  {summary?.missing ?? 0}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase text-slate-400">In SLA</p>
+                <p className="text-lg font-semibold text-white">
+                  {summary?.open_cases_in_sla ?? 0}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase text-slate-400">Overdue</p>
+                <p className="text-lg font-semibold text-white">
+                  {summary?.open_cases_overdue ?? 0}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 rounded-lg border border-slate-800 bg-slate-900/30 p-4 md:grid-cols-6">
+              <label className="text-xs uppercase text-slate-400">
+                District
+                <select
+                  value={selectedDistrictId}
+                  onChange={(event) => {
+                    setSelectedDistrictId(event.target.value);
+                    setSelectedTeamId("");
+                  }}
+                  className="mt-2 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+                >
+                  <option value="">All districts</option>
+                  {districts.map((district) => (
+                    <option key={district.id} value={district.id}>
+                      {district.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-xs uppercase text-slate-400">
+                Team
+                <select
+                  value={selectedTeamId}
+                  onChange={(event) => setSelectedTeamId(event.target.value)}
+                  className="mt-2 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+                >
+                  <option value="">All teams</option>
+                  {availableTeams.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-xs uppercase text-slate-400">
+                Status
+                <select
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value)}
+                  className="mt-2 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+                >
+                  <option value="">All statuses</option>
+                  <option value="open">Open</option>
+                  <option value="in_sla">In SLA</option>
+                  <option value="overdue">Overdue</option>
+                  <option value="closed">Closed</option>
+                </select>
+              </label>
+              <label className="text-xs uppercase text-slate-400">
+                Recruitment
+                <select
+                  value={recruitmentFilter}
+                  onChange={(event) => setRecruitmentFilter(event.target.value)}
+                  className="mt-2 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+                >
+                  <option value="">All</option>
+                  <option value="awaiting">Awaiting</option>
+                  <option value="found">Found</option>
+                  <option value="not_found">Not found</option>
+                </select>
+              </label>
+              <label className="text-xs uppercase text-slate-400">
+                Start date
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(event) => setStartDate(event.target.value)}
+                  className="mt-2 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+                />
+              </label>
+              <label className="text-xs uppercase text-slate-400">
+                End date
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(event) => setEndDate(event.target.value)}
+                  className="mt-2 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+                />
+              </label>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">District summary</h2>
+                {summary ? (
+                  <span className="text-xs text-slate-400">
+                    Due &lt;= 24h: {summary.due_24h}
+                  </span>
+                ) : null}
+              </div>
+              <div className="overflow-hidden rounded-lg border border-slate-800">
+                <table className="w-full border-collapse text-sm">
+                  <thead className="bg-slate-900/60 text-slate-300">
+                    <tr>
+                      <th className="px-4 py-3 text-left">District</th>
+                      <th className="px-4 py-3 text-left">Teams</th>
+                      <th className="px-4 py-3 text-left">Missing</th>
+                      <th className="px-4 py-3 text-left">Open cases</th>
+                      <th className="px-4 py-3 text-left">Overdue</th>
+                      <th className="px-4 py-3 text-left">Last update</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {districts.length === 0 ? (
+                      <tr>
+                        <td className="px-4 py-4 text-slate-400" colSpan={6}>
+                          No districts configured yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      districts.map((district) => (
+                        <tr
+                          key={district.id}
+                          className="border-t border-slate-800 text-slate-200"
+                        >
+                          <td className="px-4 py-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedDistrictId(district.id);
+                                setSelectedTeamId("");
+                              }}
+                              className="text-left text-sm font-semibold text-white transition hover:text-slate-200"
+                            >
+                              {district.name}
+                            </button>
+                          </td>
+                          <td className="px-4 py-3">{district.teams_count}</td>
+                          <td className="px-4 py-3">{district.missing_total}</td>
+                          <td className="px-4 py-3">{district.open_cases}</td>
+                          <td className="px-4 py-3">{district.overdue}</td>
+                          <td className="px-4 py-3">
+                            {formatDateTime(district.last_update)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {loadingDashboard ? (
+              <p className="text-sm text-slate-400">Loading dashboard...</p>
+            ) : null}
+
             <div className="overflow-hidden rounded-lg border border-slate-800">
               <table className="w-full border-collapse text-sm">
                 <thead className="bg-slate-900/60 text-slate-300">
                   <tr>
+                    <th className="px-4 py-3 text-left">District</th>
                     <th className="px-4 py-3 text-left">Team</th>
                     <th className="px-4 py-3 text-left">Worker</th>
                     <th className="px-4 py-3 text-left">Reason</th>
@@ -557,7 +815,7 @@ export default function HrDashboardPage() {
                 <tbody>
                   {sortedCases.length === 0 ? (
                     <tr>
-                      <td className="px-4 py-4 text-slate-400" colSpan={10}>
+                      <td className="px-4 py-4 text-slate-400" colSpan={11}>
                         No absence cases yet.
                       </td>
                     </tr>
@@ -586,6 +844,9 @@ export default function HrDashboardPage() {
                           key={caseItem.id}
                           className="border-t border-slate-800 text-slate-200"
                         >
+                          <td className="px-4 py-3">
+                            {getTeamDistrict(caseItem.teams)}
+                          </td>
                           <td className="px-4 py-3">
                             {getTeamName(caseItem.teams)}
                           </td>
@@ -685,7 +946,9 @@ export default function HrDashboardPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleApproveSwap(caseItem.id)}
-                                  disabled={actionCaseId === caseItem.id || !isWithinSla}
+                                  disabled={
+                                    actionCaseId === caseItem.id || !isWithinSla
+                                  }
                                   className="rounded-md bg-emerald-400 px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-70"
                                 >
                                   Approve Swap
