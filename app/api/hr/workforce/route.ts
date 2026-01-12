@@ -8,6 +8,9 @@ type TeamRow = {
   name: string;
   capacity: number;
   district_name: string | null;
+  active_headcount: number;
+  missing_count: number;
+  last_update: string | null;
 };
 
 type TeamSummary = TeamRow & {
@@ -125,8 +128,10 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: teamsInDistrict, error: teamsError } = await supabase
-      .from("teams")
-      .select("id, name, capacity, district_name")
+      .from("hr_team_workforce_summary")
+      .select(
+        "id, name, capacity, district_name, active_headcount, missing_count, last_update",
+      )
       .eq("district_name", districtName)
       .order("name");
 
@@ -141,7 +146,7 @@ export async function GET(request: NextRequest) {
 
     const { data: availableTeams, error: availableTeamsError } =
       await supabase
-        .from("teams")
+        .from("hr_team_workforce_summary")
         .select("id, name, district_name")
         .order("name");
 
@@ -152,79 +157,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const activeCounts = new Map<string, number>();
-    const missingCounts = new Map<string, number>();
-    const lastUpdates = new Map<string, string>();
-
-    if (teamIds.length > 0) {
-      const { data: membershipCounts, error: membershipError } = await supabase
-        .from("team_memberships")
-        .select("team_id, count:count()")
-        .eq("active", true)
-        .in("team_id", teamIds);
-
-      if (membershipError) {
-        return NextResponse.json(
-          { error: membershipError.message },
-          { status: 500 },
-        );
-      }
-
-      for (const row of membershipCounts ?? []) {
-        if (row.team_id) {
-          activeCounts.set(row.team_id, Number(row.count ?? 0));
-        }
-      }
-
-      const { data: missingRows, error: missingError } = await supabase
-        .from("absence_cases")
-        .select("team_id, count:count()")
-        .eq("final_status", "open")
-        .in("team_id", teamIds);
-
-      if (missingError) {
-        return NextResponse.json(
-          { error: missingError.message },
-          { status: 500 },
-        );
-      }
-
-      for (const row of missingRows ?? []) {
-        if (row.team_id) {
-          missingCounts.set(row.team_id, Number(row.count ?? 0));
-        }
-      }
-
-      const { data: lastUpdateRows, error: lastUpdateError } = await supabase
-        .from("absence_cases")
-        .select("team_id, last_update:max(reported_at)")
-        .in("team_id", teamIds);
-
-      if (lastUpdateError) {
-        return NextResponse.json(
-          { error: lastUpdateError.message },
-          { status: 500 },
-        );
-      }
-
-      const normalizedLastUpdates =
-        (lastUpdateRows ?? []) as unknown as Array<{
-          team_id: string | null;
-          last_update: string | null;
-        }>;
-
-      for (const row of normalizedLastUpdates) {
-        if (row.team_id && row.last_update) {
-          lastUpdates.set(row.team_id, row.last_update);
-        }
-      }
-    }
-
     const summaries: TeamSummary[] = (teamsInDistrict ?? []).map((team) => ({
       ...team,
-      active_headcount: activeCounts.get(team.id) ?? 0,
-      missing_count: missingCounts.get(team.id) ?? 0,
-      last_update: lastUpdates.get(team.id) ?? null,
+      active_headcount: Number(team.active_headcount ?? 0),
+      missing_count: Number(team.missing_count ?? 0),
+      last_update: team.last_update ?? null,
     }));
 
     let activeMembers: Array<{
