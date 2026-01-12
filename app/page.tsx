@@ -38,7 +38,7 @@ export default function IndexPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">
-      {checkingSession ? "Checking session..." : "Redirecting..."}
+      {checkingSession ? "กำลังตรวจสอบเซสชัน..." : "กำลังเปลี่ยนเส้นทาง..."}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 
 type Profile = {
   role: string;
@@ -70,8 +71,22 @@ function formatDate(value: string | null) {
     return "-";
   }
 
-  return new Date(value).toLocaleDateString();
+  return new Date(value).toLocaleDateString("th-TH");
 }
+
+const membershipStatusLabels: Record<string, string> = {
+  active: "ปฏิบัติงาน",
+  inactive: "สิ้นสุดแล้ว",
+  pending: "รอดำเนินการ",
+};
+
+const formatMembershipStatus = (value?: string | null) => {
+  if (!value) {
+    return "-";
+  }
+
+  return membershipStatusLabels[value] ?? value;
+};
 
 export default function HrWorkforcePage() {
   const router = useRouter();
@@ -117,7 +132,7 @@ export default function HrWorkforcePage() {
       const payload = (await response.json()) as WorkforceResponse;
 
       if (!response.ok) {
-        setError(payload.error ?? "Unable to load workforce data.");
+        setError(payload.error ?? "ไม่สามารถโหลดข้อมูลอัตรากำลังได้");
         setLoadingData(false);
         return;
       }
@@ -131,7 +146,7 @@ export default function HrWorkforcePage() {
       setError(
         loadError instanceof Error
           ? loadError.message
-          : "Unexpected error.",
+          : "เกิดข้อผิดพลาดที่ไม่คาดคิด",
       );
     } finally {
       setLoadingData(false);
@@ -162,7 +177,7 @@ export default function HrWorkforcePage() {
       const payload = (await response.json()) as WorkforceResponse;
 
       if (!response.ok) {
-        setError(payload.error ?? "Unable to load team members.");
+        setError(payload.error ?? "ไม่สามารถโหลดรายชื่อกำลังคนได้");
         setLoadingMembers(false);
         return;
       }
@@ -174,7 +189,7 @@ export default function HrWorkforcePage() {
       setError(
         loadError instanceof Error
           ? loadError.message
-          : "Unexpected error.",
+          : "เกิดข้อผิดพลาดที่ไม่คาดคิด",
       );
     } finally {
       setLoadingMembers(false);
@@ -205,7 +220,7 @@ export default function HrWorkforcePage() {
       }
 
       if (profileError || !profile) {
-        setError(profileError?.message ?? "Unable to load profile.");
+        setError(profileError?.message ?? "ไม่สามารถโหลดโปรไฟล์ได้");
         setLoading(false);
         return;
       }
@@ -213,7 +228,7 @@ export default function HrWorkforcePage() {
       setRole(profile.role);
 
       if (profile.role !== "hr_prov") {
-        setError("Only HR province can access this page.");
+        setError("เฉพาะ HR จังหวัดเท่านั้นที่เข้าถึงหน้านี้ได้");
         setLoading(false);
         return;
       }
@@ -272,7 +287,7 @@ export default function HrWorkforcePage() {
       const payload = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        setError(payload.error ?? "Unable to update district.");
+        setError(payload.error ?? "ไม่สามารถอัปเดตอำเภอได้");
         setUpdatingTeamId(null);
         return;
       }
@@ -282,7 +297,7 @@ export default function HrWorkforcePage() {
       setError(
         updateError instanceof Error
           ? updateError.message
-          : "Unexpected error.",
+          : "เกิดข้อผิดพลาดที่ไม่คาดคิด",
       );
     } finally {
       setUpdatingTeamId(null);
@@ -311,11 +326,13 @@ export default function HrWorkforcePage() {
   }, [teams, selectedTeamId]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold">Workforce visibility</h1>
+        <h1 className="text-2xl font-semibold text-[#E7EEF8]">
+          ภาพรวมอัตรากำลัง
+        </h1>
         <p className="text-sm text-slate-400">
-          Monitor active headcount and missing coverage across Krabi districts.
+          ติดตามกำลังคนปฏิบัติงานและตำแหน่งที่ขาดในจังหวัดกระบี่
         </p>
       </div>
 
@@ -326,20 +343,25 @@ export default function HrWorkforcePage() {
       ) : null}
 
       {loading ? (
-        <div className="rounded-md border border-slate-800 bg-slate-900/40 px-4 py-6 text-sm text-slate-300">
-          Loading workforce overview...
+        <div className="rounded-md border border-white/5 bg-[#0B1220] px-4 py-6 text-sm text-slate-300">
+          กำลังโหลดภาพรวมอัตรากำลัง...
         </div>
       ) : null}
 
       {!loading && role === "hr_prov" ? (
-        <div className="space-y-6">
-          <div className="grid gap-4 rounded-lg border border-slate-800 bg-slate-900/40 p-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm text-slate-300">District</label>
+        <div className="space-y-7">
+          <div className="space-y-4">
+            <SectionHeader
+              title="ตัวกรอง"
+              subtitle="กำหนดอำเภอและค้นหาทีม"
+            />
+            <div className="grid gap-4 rounded-xl border border-white/5 bg-[#0B1220] p-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm text-slate-300">อำเภอ</label>
               <select
                 value={selectedDistrict}
                 onChange={(event) => setSelectedDistrict(event.target.value)}
-                className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+                className="select-premium"
               >
                 {districts.map((district) => (
                   <option key={district} value={district}>
@@ -349,12 +371,12 @@ export default function HrWorkforcePage() {
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-slate-300">Team search</label>
+              <label className="text-sm text-slate-300">ค้นหาทีม</label>
               <input
                 value={teamSearch}
                 onChange={(event) => setTeamSearch(event.target.value)}
-                placeholder="Search teams..."
-                className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+                placeholder="พิมพ์ชื่อทีมที่ต้องการค้นหา"
+                className="input-premium"
               />
               <select
                 value={selectedTeamId ?? ""}
@@ -364,9 +386,9 @@ export default function HrWorkforcePage() {
                     handleTeamSelect(value);
                   }
                 }}
-                className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+                className="select-premium"
               >
-                <option value="">Select a team</option>
+                <option value="">เลือกทีม</option>
                 {visibleTeams.map((team) => (
                   <option key={team.id} value={team.id}>
                     {team.name}
@@ -375,141 +397,164 @@ export default function HrWorkforcePage() {
               </select>
             </div>
           </div>
+          </div>
 
-          <div className="overflow-hidden rounded-lg border border-slate-800">
-            <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/60 px-4 py-3">
-              <h2 className="text-sm font-semibold text-slate-200">
-                Teams in {selectedDistrict}
-              </h2>
-              <span className="text-xs text-slate-400">
-                {loadingData ? "Updating..." : `${teams.length} teams`}
-              </span>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-900/80 text-xs uppercase text-slate-400">
-                  <tr>
-                    <th className="px-4 py-3">อำเภอ</th>
-                    <th className="px-4 py-3">ทีม</th>
-                    <th className="px-4 py-3">Capacity</th>
-                    <th className="px-4 py-3">Active headcount</th>
-                    <th className="px-4 py-3">Missing</th>
-                    <th className="px-4 py-3">Last update</th>
-                    <th className="px-4 py-3 text-right">Set district</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {teams.length === 0 ? (
+          <div className="space-y-4">
+            <SectionHeader
+              title="รายการทีม"
+              subtitle={`ทีมในอำเภอ ${selectedDistrict}`}
+              action={
+                <span className="text-xs text-slate-400">
+                  {loadingData ? "กำลังอัปเดต..." : `ทั้งหมด ${teams.length} ทีม`}
+                </span>
+              }
+            />
+            <div className="overflow-hidden rounded-xl border border-white/5">
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-[#0E1629]">
                     <tr>
-                      <td
-                        colSpan={7}
-                        className="px-4 py-6 text-center text-sm text-slate-400"
-                      >
-                        No teams found for this district.
-                      </td>
+                      <th className="table-header-cell px-4 py-3">อำเภอ</th>
+                      <th className="table-header-cell px-4 py-3">ทีม</th>
+                      <th className="table-header-cell px-4 py-3">
+                        อัตรากำลัง
+                      </th>
+                      <th className="table-header-cell px-4 py-3">
+                        กำลังคนปฏิบัติงาน
+                      </th>
+                      <th className="table-header-cell px-4 py-3">ขาด</th>
+                      <th className="table-header-cell px-4 py-3">
+                        อัปเดตล่าสุด
+                      </th>
+                      <th className="table-header-cell px-4 py-3 text-right">
+                        กำหนดอำเภอ
+                      </th>
                     </tr>
-                  ) : (
-                    teams.map((team) => (
-                      <tr
-                        key={team.id}
-                        className="cursor-pointer bg-slate-950/40 transition hover:bg-slate-900/50"
-                        onClick={() => handleTeamSelect(team.id)}
-                      >
-                        <td className="px-4 py-3 text-slate-200">
-                          {team.district_name ?? "ไม่ระบุ"}
-                        </td>
-                        <td className="px-4 py-3 text-slate-100">
-                          {team.name}
-                        </td>
-                        <td className="px-4 py-3 text-slate-300">
-                          {team.capacity}
-                        </td>
-                        <td className="px-4 py-3 text-slate-300">
-                          {team.active_headcount}
-                        </td>
-                        <td className="px-4 py-3 text-slate-300">
-                          {team.missing_count}
-                        </td>
-                        <td className="px-4 py-3 text-slate-300">
-                          {formatDate(team.last_update)}
-                        </td>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {teams.length === 0 ? (
+                      <tr>
                         <td
-                          className="px-4 py-3 text-right"
-                          onClick={(event) => event.stopPropagation()}
+                          colSpan={7}
+                          className="px-4 py-6 text-center text-sm text-slate-400"
                         >
-                          <select
-                            value={team.district_name ?? "ไม่ระบุ"}
-                            onChange={(event) =>
-                              handleDistrictUpdate(team.id, event.target.value)
-                            }
-                            disabled={updatingTeamId === team.id}
-                            className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100"
-                          >
-                            {setDistrictOptions.map((district) => (
-                              <option key={district} value={district}>
-                                {district}
-                              </option>
-                            ))}
-                          </select>
+                          ไม่พบทีมในอำเภอนี้
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      teams.map((team) => (
+                        <tr
+                          key={team.id}
+                          className="table-row-hover cursor-pointer bg-[#050814]/40"
+                          onClick={() => handleTeamSelect(team.id)}
+                        >
+                          <td className="px-4 py-3 text-slate-200">
+                            {team.district_name ?? "ไม่ระบุ"}
+                          </td>
+                          <td className="px-4 py-3 text-slate-100">
+                            {team.name}
+                          </td>
+                          <td className="px-4 py-3 text-slate-300">
+                            {team.capacity}
+                          </td>
+                          <td className="px-4 py-3 text-slate-300">
+                            {team.active_headcount}
+                          </td>
+                          <td className="px-4 py-3 text-slate-300">
+                            {team.missing_count}
+                          </td>
+                          <td className="px-4 py-3 text-slate-300">
+                            {formatDate(team.last_update)}
+                          </td>
+                          <td
+                            className="px-4 py-3 text-right"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <select
+                              value={team.district_name ?? "ไม่ระบุ"}
+                              onChange={(event) =>
+                                handleDistrictUpdate(
+                                  team.id,
+                                  event.target.value,
+                                )
+                              }
+                              disabled={updatingTeamId === team.id}
+                              className="select-premium text-xs"
+                            >
+                              {setDistrictOptions.map((district) => (
+                                <option key={district} value={district}>
+                                  {district}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
-          <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-slate-200">
-                  Active members
-                </h3>
-                <p className="text-xs text-slate-400">
-                  {selectedTeam
-                    ? `Team: ${selectedTeam.name}`
-                    : "Select a team to see active members."}
-                </p>
-              </div>
-              {loadingMembers ? (
-                <span className="text-xs text-slate-400">Loading...</span>
-              ) : null}
-            </div>
+          <div className="space-y-4">
+            <SectionHeader
+              title="กำลังคนปฏิบัติงาน"
+              subtitle={
+                selectedTeam
+                  ? `ทีม: ${selectedTeam.name}`
+                  : "เลือกทีมเพื่อดูรายชื่อกำลังคนปฏิบัติงาน"
+              }
+              action={
+                loadingMembers ? (
+                  <span className="text-xs text-slate-400">
+                    กำลังโหลด...
+                  </span>
+                ) : null
+              }
+            />
 
             {selectedTeam ? (
-              <div className="mt-4 overflow-x-auto">
+              <div className="overflow-x-auto rounded-xl border border-white/5">
                 <table className="min-w-full text-left text-sm">
-                  <thead className="text-xs uppercase text-slate-400">
+                  <thead className="bg-[#0E1629]">
                     <tr>
-                      <th className="px-3 py-2">full_name</th>
-                      <th className="px-3 py-2">start_date</th>
-                      <th className="px-3 py-2">national_id</th>
-                      <th className="px-3 py-2">membership status</th>
+                      <th className="table-header-cell px-3 py-2">
+                        ชื่อ-สกุล
+                      </th>
+                      <th className="table-header-cell px-3 py-2">
+                        วันที่เริ่ม
+                      </th>
+                      <th className="table-header-cell px-3 py-2">
+                        เลขประจำตัวประชาชน
+                      </th>
+                      <th className="table-header-cell px-3 py-2">สถานะ</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800">
+                  <tbody className="divide-y divide-white/5">
                     {activeMembers.length === 0 && !loadingMembers ? (
                       <tr>
                         <td
                           colSpan={4}
                           className="px-3 py-4 text-center text-xs text-slate-400"
                         >
-                          No active members found.
+                          ไม่พบกำลังคนปฏิบัติงาน
                         </td>
                       </tr>
                     ) : (
                       activeMembers.map((member) => (
-                        <tr key={member.id} className="text-slate-200">
-                          <td className="px-3 py-2">{member.full_name}</td>
-                          <td className="px-3 py-2">
+                        <tr key={member.id} className="table-row-hover">
+                          <td className="px-3 py-2 text-slate-200">
+                            {member.full_name}
+                          </td>
+                          <td className="px-3 py-2 text-slate-300">
                             {formatDate(member.start_date)}
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="px-3 py-2 text-slate-300">
                             {member.national_id ?? "-"}
                           </td>
-                          <td className="px-3 py-2">
-                            {member.membership_status}
+                          <td className="px-3 py-2 text-slate-300">
+                            {formatMembershipStatus(member.membership_status)}
                           </td>
                         </tr>
                       ))

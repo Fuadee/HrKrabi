@@ -38,7 +38,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   if (!ready) {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">
-        Loading...
+        กำลังโหลด...
       </div>
     );
   }

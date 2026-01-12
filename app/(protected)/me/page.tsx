@@ -10,6 +10,14 @@ type Profile = {
   role: string;
 };
 
+const roleLabels: Record<string, string> = {
+  hr_prov: "HR จังหวัด",
+  team_lead: "หัวหน้าทีม",
+};
+
+const formatRoleLabel = (value: string | null) =>
+  value ? roleLabels[value] ?? value : "-";
+
 export default function MePage() {
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
@@ -26,7 +34,7 @@ export default function MePage() {
 
       if (userError || !data.user) {
         if (isMounted) {
-          setError(userError?.message ?? "Unable to load user.");
+          setError(userError?.message ?? "ไม่สามารถโหลดผู้ใช้ได้");
           setLoading(false);
         }
         return;
@@ -65,23 +73,24 @@ export default function MePage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-white">
-      <div className="w-full max-w-md space-y-4 rounded-xl border border-slate-800 bg-slate-950/60 p-6">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-[#E7EEF8]">
+      <div className="w-full max-w-md space-y-4 rounded-2xl border border-white/5 bg-[#0B1220]/80 p-6 shadow-[0_20px_60px_rgba(5,8,20,0.45)]">
         <div>
-          <h1 className="text-2xl font-semibold">Your profile</h1>
+          <h1 className="text-2xl font-semibold">โปรไฟล์ของฉัน</h1>
           <p className="text-sm text-slate-400">
-            Email and role loaded from Supabase.
+            ข้อมูลอีเมลและบทบาทจาก Supabase
           </p>
         </div>
         {loading ? (
-          <p className="text-sm text-slate-300">Loading profile...</p>
+          <p className="text-sm text-slate-300">กำลังโหลดโปรไฟล์...</p>
         ) : (
           <div className="space-y-2 text-left text-sm text-slate-200">
             <p>
-              <span className="text-slate-400">Email:</span> {email ?? "-"}
+              <span className="text-slate-400">อีเมล:</span> {email ?? "-"}
             </p>
             <p>
-              <span className="text-slate-400">Role:</span> {role ?? "-"}
+              <span className="text-slate-400">บทบาท:</span>{" "}
+              {formatRoleLabel(role)}
             </p>
           </div>
         )}
@@ -93,9 +102,9 @@ export default function MePage() {
         <button
           type="button"
           onClick={handleLogout}
-          className="w-full rounded-md border border-slate-700 px-4 py-2 text-sm font-semibold text-white transition hover:border-slate-500"
+          className="btn-secondary w-full text-sm"
         >
-          Logout
+          ออกจากระบบ
         </button>
       </div>
     </main>

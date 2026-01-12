@@ -69,13 +69,43 @@ type SlaBadge = {
   className: string;
 };
 
+const hrStatusLabels: Record<string, string> = {
+  pending: "รอดำเนินการ",
+  in_sla: "อยู่ใน SLA",
+  sla_expired: "เกิน SLA",
+  closed: "ปิดแล้ว",
+};
+
+const recruitmentStatusLabels: Record<string, string> = {
+  awaiting: "รอดำเนินการ",
+  found: "พบคนแทนแล้ว",
+  not_found: "ยังไม่พบ",
+};
+
+const reasonLabels: Record<string, string> = {
+  absent: "ขาดงาน",
+  missing: "ขาดกำลังคน",
+  quit: "ลาออก",
+  other: "อื่น ๆ",
+};
+
+const formatReasonLabel = (value: string) =>
+  reasonLabels[value] ?? value.replace(/_/g, " ");
+
+const formatHrStatusLabel = (value: string) =>
+  hrStatusLabels[value] ?? value.replace(/_/g, " ");
+
+const formatRecruitmentLabel = (value: string) =>
+  recruitmentStatusLabels[value] ?? value.replace(/_/g, " ");
+
 function getSlaBadge(caseItem: CaseRow): SlaBadge {
-  const statusLabel = caseItem.hr_status.replace(/_/g, " ");
+  const statusLabel = formatHrStatusLabel(caseItem.hr_status);
 
   if (!caseItem.sla_deadline_at) {
     return {
       label: statusLabel,
-      className: "bg-slate-800 text-slate-200",
+      className:
+        "badge bg-slate-800/60 text-slate-200 border-slate-600/40",
     };
   }
 
@@ -89,20 +119,20 @@ function getSlaBadge(caseItem: CaseRow): SlaBadge {
   if (diffDays < 0 || caseItem.hr_status === "sla_expired") {
     return {
       label: statusLabel,
-      className: "bg-rose-500/20 text-rose-200 border border-rose-500/40",
+      className: "badge bg-rose-500/10 text-rose-200 border-rose-500/30",
     };
   }
 
   if (diffDays <= 1) {
     return {
       label: statusLabel,
-      className: "bg-amber-500/20 text-amber-100 border border-amber-500/40",
+      className: "badge bg-amber-500/10 text-amber-200 border-amber-500/30",
     };
   }
 
   return {
     label: statusLabel,
-    className: "bg-emerald-500/20 text-emerald-100 border border-emerald-500/40",
+    className: "badge bg-emerald-500/10 text-emerald-200 border-emerald-500/30",
   };
 }
 
@@ -111,7 +141,7 @@ function formatDate(dateValue: string | null) {
     return "-";
   }
 
-  return new Date(`${dateValue}T00:00:00`).toLocaleDateString();
+  return new Date(`${dateValue}T00:00:00`).toLocaleDateString("th-TH");
 }
 
 function getTeamName(teams: CaseRow["teams"]) {
@@ -266,7 +296,7 @@ export default function HrDashboardPage() {
       setError(
         loadError instanceof Error
           ? loadError.message
-          : "Unexpected error.",
+          : "เกิดข้อผิดพลาดที่ไม่คาดคิด",
       );
       setLoadingCases(false);
     }
@@ -296,7 +326,7 @@ export default function HrDashboardPage() {
       }
 
       if (profileError || !profile) {
-        setError(profileError?.message ?? "Unable to load profile.");
+        setError(profileError?.message ?? "ไม่สามารถโหลดโปรไฟล์ได้");
         setLoading(false);
         return;
       }
@@ -304,7 +334,7 @@ export default function HrDashboardPage() {
       setRole(profile.role);
 
       if (profile.role !== "hr_prov") {
-        setError("Only HR province can access this dashboard.");
+        setError("เฉพาะ HR จังหวัดเท่านั้นที่เข้าถึงแดชบอร์ดนี้ได้");
         setLoading(false);
         return;
       }
@@ -361,7 +391,7 @@ export default function HrDashboardPage() {
       const responsePayload = (await response.json()) as CaseResponse;
 
       if (!response.ok) {
-        setError(responsePayload.error ?? "Failed to receive case.");
+        setError(responsePayload.error ?? "ไม่สามารถรับเคสได้");
         setActionCaseId(null);
         return;
       }
@@ -373,11 +403,11 @@ export default function HrDashboardPage() {
       setActionModalState(null);
       setActionCaseId(null);
     } catch (actionError) {
-      setError(
-        actionError instanceof Error
-          ? actionError.message
-          : "Unexpected error.",
-      );
+        setError(
+          actionError instanceof Error
+            ? actionError.message
+            : "เกิดข้อผิดพลาดที่ไม่คาดคิด",
+        );
       setActionCaseId(null);
     }
   };
@@ -423,7 +453,7 @@ export default function HrDashboardPage() {
       const responsePayload = (await response.json()) as CaseResponse;
 
       if (!response.ok) {
-        setError(responsePayload.error ?? "Failed to record outcome.");
+        setError(responsePayload.error ?? "ไม่สามารถบันทึกผลได้");
         setActionCaseId(null);
         return;
       }
@@ -435,11 +465,11 @@ export default function HrDashboardPage() {
       setActionModalState(null);
       setActionCaseId(null);
     } catch (actionError) {
-      setError(
-        actionError instanceof Error
-          ? actionError.message
-          : "Unexpected error.",
-      );
+        setError(
+          actionError instanceof Error
+            ? actionError.message
+            : "เกิดข้อผิดพลาดที่ไม่คาดคิด",
+        );
       setActionCaseId(null);
     }
   };
@@ -483,7 +513,7 @@ export default function HrDashboardPage() {
       const payload = (await response.json()) as CaseResponse;
 
       if (!response.ok) {
-        setError(payload.error ?? "Failed to approve swap.");
+        setError(payload.error ?? "ไม่สามารถอนุมัติการสลับกำลังคนได้");
         setActionCaseId(null);
         return;
       }
@@ -494,11 +524,11 @@ export default function HrDashboardPage() {
 
       setActionCaseId(null);
     } catch (actionError) {
-      setError(
-        actionError instanceof Error
-          ? actionError.message
-          : "Unexpected error.",
-      );
+        setError(
+          actionError instanceof Error
+            ? actionError.message
+            : "เกิดข้อผิดพลาดที่ไม่คาดคิด",
+        );
       setActionCaseId(null);
     }
   };
@@ -527,7 +557,7 @@ export default function HrDashboardPage() {
       const payload = (await response.json()) as CaseResponse;
 
       if (!response.ok) {
-        setError(payload.error ?? "Failed to mark vacant.");
+        setError(payload.error ?? "ไม่สามารถระบุเป็นตำแหน่งว่างได้");
         setActionCaseId(null);
         return;
       }
@@ -538,31 +568,30 @@ export default function HrDashboardPage() {
 
       setActionCaseId(null);
     } catch (actionError) {
-      setError(
-        actionError instanceof Error
-          ? actionError.message
-          : "Unexpected error.",
-      );
+        setError(
+          actionError instanceof Error
+            ? actionError.message
+            : "เกิดข้อผิดพลาดที่ไม่คาดคิด",
+        );
       setActionCaseId(null);
     }
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-white">
-      <div className="w-full max-w-6xl space-y-4 rounded-xl border border-slate-800 bg-slate-950/60 p-6 text-left">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-[#E7EEF8]">
+      <div className="w-full max-w-6xl space-y-6 rounded-2xl border border-white/5 bg-[#0B1220]/80 p-6 text-left shadow-[0_20px_60px_rgba(5,8,20,0.45)]">
         <div>
-          <h1 className="text-2xl font-semibold">HR Province dashboard</h1>
+          <h1 className="text-2xl font-semibold">แดชบอร์ด HR จังหวัด</h1>
           <p className="text-sm text-slate-400">
-            Receive cases, record recruitment outcomes, and finalize swaps or
-            vacancies.
+            รับเคส บันทึกผลการสรรหา และปิดงานแทน/ว่าง
           </p>
         </div>
         {loading ? (
-          <p className="text-sm text-slate-300">Loading cases...</p>
+          <p className="text-sm text-slate-300">กำลังโหลดเคส...</p>
         ) : null}
         {!loading && role !== "hr_prov" ? (
           <p className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
-            {error ?? "Access restricted."}
+            {error ?? "ไม่มีสิทธิ์เข้าถึง"}
           </p>
         ) : null}
         {!loading && role === "hr_prov" ? (
@@ -574,30 +603,50 @@ export default function HrDashboardPage() {
             ) : null}
 
             {loadingCases ? (
-              <p className="text-sm text-slate-400">Loading cases...</p>
+              <p className="text-sm text-slate-400">กำลังโหลดเคส...</p>
             ) : null}
 
-            <div className="overflow-hidden rounded-lg border border-slate-800">
+            <div className="overflow-hidden rounded-xl border border-white/5">
               <table className="w-full border-collapse text-sm">
-                <thead className="bg-slate-900/60 text-slate-300">
+                <thead className="bg-[#0E1629]">
                   <tr>
-                    <th className="px-4 py-3 text-left">Team</th>
-                    <th className="px-4 py-3 text-left">Worker</th>
-                    <th className="px-4 py-3 text-left">Reason</th>
-                    <th className="px-4 py-3 text-left">Reported</th>
-                    <th className="px-4 py-3 text-left">HR status</th>
-                    <th className="px-4 py-3 text-left">SLA deadline</th>
-                    <th className="px-4 py-3 text-left">Recruitment</th>
-                    <th className="px-4 py-3 text-left">Replacement</th>
-                    <th className="px-4 py-3 text-left">Start date</th>
-                    <th className="px-4 py-3 text-left">Action</th>
+                    <th className="table-header-cell px-4 py-3 text-left">
+                      ทีม
+                    </th>
+                    <th className="table-header-cell px-4 py-3 text-left">
+                      ผู้ปฏิบัติงาน
+                    </th>
+                    <th className="table-header-cell px-4 py-3 text-left">
+                      เหตุผล
+                    </th>
+                    <th className="table-header-cell px-4 py-3 text-left">
+                      วันที่รายงาน
+                    </th>
+                    <th className="table-header-cell px-4 py-3 text-left">
+                      สถานะ HR
+                    </th>
+                    <th className="table-header-cell px-4 py-3 text-left">
+                      กำหนดเสร็จ (SLA)
+                    </th>
+                    <th className="table-header-cell px-4 py-3 text-left">
+                      การสรรหา
+                    </th>
+                    <th className="table-header-cell px-4 py-3 text-left">
+                      ผู้แทน
+                    </th>
+                    <th className="table-header-cell px-4 py-3 text-left">
+                      วันที่เริ่ม
+                    </th>
+                    <th className="table-header-cell px-4 py-3 text-left">
+                      การดำเนินการ
+                    </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-white/5">
                   {sortedCases.length === 0 ? (
                     <tr>
                       <td className="px-4 py-4 text-slate-400" colSpan={10}>
-                        No absence cases yet.
+                        ยังไม่มีเคสการขาดงาน
                       </td>
                     </tr>
                   ) : (
@@ -623,7 +672,7 @@ export default function HrDashboardPage() {
                       return (
                         <tr
                           key={caseItem.id}
-                          className="border-t border-slate-800 text-slate-200"
+                          className="table-row-hover text-slate-200"
                         >
                           <td className="px-4 py-3">
                             {getTeamName(caseItem.teams)}
@@ -632,30 +681,30 @@ export default function HrDashboardPage() {
                             <div className="flex flex-col gap-1">
                               <span>{getWorkerName(caseItem.workers)}</span>
                               {caseItem.removedFromTeam ? (
-                                <span className="inline-flex w-fit items-center rounded-full border border-rose-400/50 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-rose-200">
-                                  Removed from team
+                                <span className="badge w-fit border-rose-400/30 bg-rose-500/10 text-rose-200">
+                                  ถูกนำออกจากทีม
                                 </span>
                               ) : null}
                             </div>
                           </td>
-                          <td className="px-4 py-3 capitalize">
-                            {caseItem.reason}
+                          <td className="px-4 py-3">
+                            {formatReasonLabel(caseItem.reason)}
                           </td>
                           <td className="px-4 py-3">
-                            {new Date(caseItem.reported_at).toLocaleString()}
+                            {new Date(caseItem.reported_at).toLocaleString(
+                              "th-TH",
+                            )}
                           </td>
                           <td className="px-4 py-3">
-                            <span
-                              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}
-                            >
-                              {badge.label}
-                            </span>
+                            <span className={badge.className}>{badge.label}</span>
                           </td>
                           <td className="px-4 py-3">
                             {formatDate(caseItem.sla_deadline_at)}
                           </td>
-                          <td className="px-4 py-3 capitalize">
-                            {caseItem.recruitment_status.replace(/_/g, " ")}
+                          <td className="px-4 py-3">
+                            {formatRecruitmentLabel(
+                              caseItem.recruitment_status,
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             {caseItem.replacement_worker_name ?? "-"}
@@ -676,11 +725,11 @@ export default function HrDashboardPage() {
                                     setError(null);
                                   }}
                                   disabled={actionCaseId === caseItem.id}
-                                  className="rounded-md bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70"
+                                  className="btn-gold"
                                 >
                                   {actionCaseId === caseItem.id
-                                    ? "Sending..."
-                                    : "Receive & Send Document"}
+                                    ? "กำลังส่ง..."
+                                    : "รับเคส"}
                                 </button>
                               ) : null}
                               {isAwaiting && isOpen ? (
@@ -700,9 +749,9 @@ export default function HrDashboardPage() {
                                       });
                                       setError(null);
                                     }}
-                                    className="rounded-md border border-emerald-400/60 px-3 py-2 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/10"
+                                    className="btn-gold"
                                   >
-                                    Record Found
+                                    บันทึก: พบคนแทน
                                   </button>
                                   <button
                                     type="button"
@@ -714,11 +763,11 @@ export default function HrDashboardPage() {
                                       setError(null);
                                     }}
                                     disabled={actionCaseId === caseItem.id}
-                                    className="rounded-md border border-slate-600 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-slate-800/60 disabled:cursor-not-allowed disabled:opacity-70"
+                                    className="btn-secondary"
                                   >
                                     {actionCaseId === caseItem.id
-                                      ? "Saving..."
-                                      : "Record Not Found"}
+                                      ? "กำลังบันทึก..."
+                                      : "บันทึก: ยังไม่พบคนแทน"}
                                   </button>
                                 </>
                               ) : null}
@@ -729,9 +778,9 @@ export default function HrDashboardPage() {
                                   disabled={
                                     actionCaseId === caseItem.id || !isWithinSla
                                   }
-                                  className="rounded-md bg-emerald-400 px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-70"
+                                  className="btn-gold"
                                 >
-                                  Approve Swap
+                                  ปิดงาน
                                 </button>
                               ) : null}
                               {isNotFound && isOpen && isAfterSla ? (
@@ -739,22 +788,22 @@ export default function HrDashboardPage() {
                                   type="button"
                                   onClick={() => handleMarkVacant(caseItem.id)}
                                   disabled={actionCaseId === caseItem.id}
-                                  className="rounded-md bg-amber-400 px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-70"
+                                  className="btn-destructive"
                                 >
-                                  Mark Vacant
+                                  ปิดงาน: ตำแหน่งว่าง
                                 </button>
                               ) : null}
                               {!isPending && !isOpen ? (
                                 <span className="text-xs text-slate-400">
-                                  Finalized
+                                  ปิดงานแล้ว
                                 </span>
                               ) : null}
                               <button
                                 type="button"
                                 onClick={() => setHistoryCaseId(caseItem.id)}
-                                className="rounded-md border border-slate-700 px-3 py-2 text-xs text-slate-200 transition hover:bg-slate-800/60"
+                                className="btn-secondary"
                               >
-                                History
+                                ประวัติ
                               </button>
                             </div>
                           </td>
@@ -773,10 +822,10 @@ export default function HrDashboardPage() {
         mode={actionModalState?.mode ?? "receive"}
         title={
           actionModalState?.mode === "receive"
-            ? "Receive & Send Documents"
+            ? "รับเคสและส่งเอกสาร"
             : actionModalState?.mode === "record_found"
-              ? "Record Found Outcome"
-              : "Record Not Found Outcome"
+              ? "บันทึกผล: พบคนแทน"
+              : "บันทึกผล: ยังไม่พบคนแทน"
         }
         isSubmitting={
           Boolean(actionModalState) &&
