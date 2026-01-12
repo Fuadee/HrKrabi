@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   ActionModal,
   ActionModalMode,
-  DocumentInput,
+  ActionModalPayload,
 } from "@/components/hr/ActionModal";
 import { HistoryModal } from "@/components/hr/HistoryModal";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
@@ -294,11 +294,7 @@ export default function HrDashboardPage() {
 
   const handleReceive = async (
     caseId: string,
-    payload: {
-      signedBy: string;
-      note: string;
-      documents: DocumentInput[];
-    },
+    payload: ActionModalPayload,
   ) => {
     setActionCaseId(caseId);
     setError(null);
@@ -328,16 +324,16 @@ export default function HrDashboardPage() {
         }),
       });
 
-      const payload = (await response.json()) as CaseResponse;
+      const responsePayload = (await response.json()) as CaseResponse;
 
       if (!response.ok) {
-        setError(payload.error ?? "Failed to receive case.");
+        setError(responsePayload.error ?? "Failed to receive case.");
         setActionCaseId(null);
         return;
       }
 
-      if (payload.data) {
-        updateCaseRow(payload.data);
+      if (responsePayload.data) {
+        updateCaseRow(responsePayload.data);
       }
 
       setActionModalState(null);
@@ -355,13 +351,7 @@ export default function HrDashboardPage() {
   const handleRecordOutcome = async (
     caseId: string,
     outcome: "found" | "not_found",
-    payload: {
-      signedBy: string;
-      note: string;
-      documents: DocumentInput[];
-      replacementWorkerName?: string;
-      replacementStartDate?: string;
-    },
+    payload: ActionModalPayload,
   ) => {
     setActionCaseId(caseId);
     setError(null);
@@ -396,16 +386,16 @@ export default function HrDashboardPage() {
         }),
       });
 
-      const payload = (await response.json()) as CaseResponse;
+      const responsePayload = (await response.json()) as CaseResponse;
 
       if (!response.ok) {
-        setError(payload.error ?? "Failed to record outcome.");
+        setError(responsePayload.error ?? "Failed to record outcome.");
         setActionCaseId(null);
         return;
       }
 
-      if (payload.data) {
-        updateCaseRow(payload.data);
+      if (responsePayload.data) {
+        updateCaseRow(responsePayload.data);
       }
 
       setActionModalState(null);
@@ -420,13 +410,7 @@ export default function HrDashboardPage() {
     }
   };
 
-  const submitActionModal = async (payload: {
-    signedBy: string;
-    note: string;
-    documents: DocumentInput[];
-    replacementWorkerName?: string;
-    replacementStartDate?: string;
-  }) => {
+  const submitActionModal = async (payload: ActionModalPayload) => {
     if (!actionModalState) {
       return;
     }
