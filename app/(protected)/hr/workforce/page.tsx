@@ -16,6 +16,9 @@ type TeamSummary = {
   capacity: number;
   district_name: string | null;
   active_headcount: number;
+  missing_capacity: number;
+  open_cases: number;
+  last_case_update: string | null;
   missing_count: number;
   last_update: string | null;
 };
@@ -61,7 +64,7 @@ const setDistrictOptions = [
 
 function formatDate(value: string | null) {
   if (!value) {
-    return "-";
+    return "ยังไม่มีข้อมูล";
   }
 
   return new Date(value).toLocaleDateString("th-TH");
@@ -363,7 +366,6 @@ export default function HrWorkforcePage() {
                 <table className="min-w-full text-left text-sm">
                   <thead className="bg-[#0E1629]">
                     <tr>
-                      <th className="table-header-cell px-4 py-3">อำเภอ</th>
                       <th className="table-header-cell px-4 py-3">ทีม</th>
                       <th className="table-header-cell px-4 py-3">
                         อัตรากำลัง
@@ -371,9 +373,14 @@ export default function HrWorkforcePage() {
                       <th className="table-header-cell px-4 py-3">
                         กำลังคนปฏิบัติงาน
                       </th>
-                      <th className="table-header-cell px-4 py-3">ขาด</th>
                       <th className="table-header-cell px-4 py-3">
-                        อัปเดตล่าสุด
+                        ขาดตามอัตรากำลัง
+                      </th>
+                      <th className="table-header-cell px-4 py-3">
+                        เคสเปิดอยู่
+                      </th>
+                      <th className="table-header-cell px-4 py-3">
+                        อัปเดตเคสล่าสุด
                       </th>
                       <th className="table-header-cell px-4 py-3 text-right">
                         กำหนดอำเภอ
@@ -397,9 +404,6 @@ export default function HrWorkforcePage() {
                           className="table-row-hover cursor-pointer bg-[#050814]/40"
                           onClick={() => handleTeamSelect(team.id)}
                         >
-                          <td className="px-4 py-3 text-slate-200">
-                            {team.district_name ?? "ไม่ระบุ"}
-                          </td>
                           <td className="px-4 py-3 text-slate-100">
                             {team.name}
                           </td>
@@ -410,10 +414,13 @@ export default function HrWorkforcePage() {
                             {team.active_headcount}
                           </td>
                           <td className="px-4 py-3 text-slate-300">
-                            {team.missing_count}
+                            {team.missing_capacity}
                           </td>
                           <td className="px-4 py-3 text-slate-300">
-                            {formatDate(team.last_update)}
+                            {team.open_cases}
+                          </td>
+                          <td className="px-4 py-3 text-slate-300">
+                            {formatDate(team.last_case_update ?? team.last_update)}
                           </td>
                           <td
                             className="px-4 py-3 text-right"
