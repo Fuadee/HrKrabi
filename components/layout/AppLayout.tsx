@@ -48,6 +48,7 @@ const teamLeadNavItems: NavItem[] = [
 const hrNavItems: NavItem[] = [
   devHealthItem,
   { label: "HR dashboard", href: "/hr/dashboard", match: ["/hr/dashboard"] },
+  { label: "Workforce", href: "/hr/workforce", match: ["/hr/workforce"] },
   myProfileItem,
 ];
 
