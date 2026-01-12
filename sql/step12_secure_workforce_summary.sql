@@ -17,6 +17,9 @@ returns table (
   capacity int,
   district_name text,
   active_headcount bigint,
+  missing_capacity bigint,
+  open_cases bigint,
+  last_case_update timestamptz,
   missing_count bigint,
   last_update timestamptz
 )
@@ -41,6 +44,9 @@ begin
     summary.capacity,
     summary.district_name,
     summary.active_headcount,
+    summary.missing_capacity,
+    summary.open_cases,
+    summary.last_case_update,
     summary.missing_count,
     summary.last_update
   from public.hr_team_workforce_summary as summary

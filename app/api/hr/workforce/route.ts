@@ -9,12 +9,18 @@ type TeamRow = {
   capacity: number;
   district_name: string | null;
   active_headcount: number;
+  missing_capacity: number;
+  open_cases: number;
+  last_case_update: string | null;
   missing_count: number;
   last_update: string | null;
 };
 
 type TeamSummary = TeamRow & {
   active_headcount: number;
+  missing_capacity: number;
+  open_cases: number;
+  last_case_update: string | null;
   missing_count: number;
   last_update: string | null;
 };
@@ -157,6 +163,9 @@ export async function GET(request: NextRequest) {
     const summaries: TeamSummary[] = (teamsInDistrict ?? []).map((team) => ({
       ...team,
       active_headcount: Number(team.active_headcount ?? 0),
+      missing_capacity: Number(team.missing_capacity ?? 0),
+      open_cases: Number(team.open_cases ?? 0),
+      last_case_update: team.last_case_update ?? null,
       missing_count: Number(team.missing_count ?? 0),
       last_update: team.last_update ?? null,
     }));
