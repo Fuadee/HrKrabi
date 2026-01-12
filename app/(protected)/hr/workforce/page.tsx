@@ -302,24 +302,30 @@ export default function HrWorkforcePage() {
   }, [teams, selectedTeamId]);
 
   return (
-    <div className="space-y-7">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-[#E7EEF8]">
-          ภาพรวมอัตรากำลัง
-        </h1>
-        <p className="text-sm text-slate-400">
+    <div className="space-y-8 rounded-[28px] bg-[#F7F8FA] p-6 shadow-sm">
+      <div className="flex flex-col gap-3">
+        <div>
+          <h1 className="text-3xl font-bold text-[#111827]">
+            ภาพรวมอัตรากำลัง
+          </h1>
+          <span
+            aria-hidden="true"
+            className="mt-3 block h-[3px] w-16 rounded-full bg-gradient-to-r from-[#F58529] via-[#DD2A7B] to-[#515BD4]"
+          />
+        </div>
+        <p className="text-sm text-[#6B7280]">
           ติดตามกำลังคนปฏิบัติงานและตำแหน่งที่ขาดในจังหวัดกระบี่
         </p>
       </div>
 
       {error ? (
-        <div className="rounded-md border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600 shadow-sm">
           {error}
         </div>
       ) : null}
 
       {loading ? (
-        <div className="rounded-md border border-white/5 bg-[#0B1220] px-4 py-6 text-sm text-slate-300">
+        <div className="rounded-2xl border border-[#E9EBF0] bg-white px-4 py-6 text-sm text-slate-600 shadow-sm">
           กำลังโหลดภาพรวมอัตรากำลัง...
         </div>
       ) : null}
@@ -330,15 +336,19 @@ export default function HrWorkforcePage() {
             <SectionHeader
               title="ตัวกรอง"
               subtitle="กำหนดอำเภอ"
+              accent="gradient"
+              className="px-6 py-4"
               action={
                 <div className="w-full max-w-[420px] md:min-w-[360px]">
-                  <label className="text-xs text-slate-400">อำเภอ</label>
+                  <label className="text-xs font-medium text-slate-500">
+                    อำเภอ
+                  </label>
                   <select
                     value={selectedDistrict}
                     onChange={(event) =>
                       setSelectedDistrict(event.target.value)
                     }
-                    className="select-premium mt-2"
+                    className="select-premium mt-2 rounded-2xl px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8134AF]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#F7F8FA]"
                   >
                     {districts.map((district) => (
                       <option key={district} value={district}>
@@ -355,16 +365,18 @@ export default function HrWorkforcePage() {
             <SectionHeader
               title="รายการทีม"
               subtitle={`ทีมในอำเภอ ${selectedDistrict}`}
+              accent="gradient"
+              className="px-6 py-4"
               action={
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-slate-500">
                   {loadingData ? "กำลังอัปเดต..." : `ทั้งหมด ${teams.length} ทีม`}
                 </span>
               }
             />
-            <div className="overflow-hidden rounded-xl border border-white/5">
+            <div className="card-surface overflow-hidden rounded-2xl border border-[#E9EBF0]">
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
-                  <thead className="bg-[#0E1629]">
+                  <thead className="bg-[#F3F4F6] text-[#374151]">
                     <tr>
                       <th className="table-header-cell px-4 py-3">ทีม</th>
                       <th className="table-header-cell px-4 py-3">
@@ -387,12 +399,12 @@ export default function HrWorkforcePage() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-[#EEF2F7]">
                     {teams.length === 0 ? (
                       <tr>
                         <td
                           colSpan={7}
-                          className="px-4 py-6 text-center text-sm text-slate-400"
+                          className="px-4 py-6 text-center text-sm text-slate-500"
                         >
                           ไม่พบทีมในอำเภอนี้
                         </td>
@@ -401,25 +413,25 @@ export default function HrWorkforcePage() {
                       teams.map((team) => (
                         <tr
                           key={team.id}
-                          className="table-row-hover cursor-pointer bg-[#050814]/40"
+                          className="table-row-hover cursor-pointer bg-white"
                           onClick={() => handleTeamSelect(team.id)}
                         >
-                          <td className="px-4 py-3 text-slate-100">
+                          <td className="px-4 py-3 font-medium text-slate-800">
                             {team.name}
                           </td>
-                          <td className="px-4 py-3 text-slate-300">
+                          <td className="px-4 py-3 text-slate-600">
                             {team.capacity}
                           </td>
-                          <td className="px-4 py-3 text-slate-300">
+                          <td className="px-4 py-3 text-slate-600">
                             {team.active_headcount}
                           </td>
-                          <td className="px-4 py-3 text-slate-300">
+                          <td className="px-4 py-3 text-slate-600">
                             {team.missing_capacity}
                           </td>
-                          <td className="px-4 py-3 text-slate-300">
+                          <td className="px-4 py-3 text-slate-600">
                             {team.open_cases}
                           </td>
-                          <td className="px-4 py-3 text-slate-300">
+                          <td className="px-4 py-3 text-slate-600">
                             {formatDate(team.last_case_update ?? team.last_update)}
                           </td>
                           <td
@@ -435,7 +447,7 @@ export default function HrWorkforcePage() {
                                 )
                               }
                               disabled={updatingTeamId === team.id}
-                              className="select-premium text-xs"
+                              className="select-premium rounded-2xl px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8134AF]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                             >
                               {setDistrictOptions.map((district) => (
                                 <option key={district} value={district}>
@@ -457,9 +469,11 @@ export default function HrWorkforcePage() {
             <SectionHeader
               title="กำลังคนปฏิบัติงาน"
               subtitle={selectedTeam ? `ทีม: ${selectedTeam.name}` : undefined}
+              accent="gradient"
+              className="px-6 py-4"
               action={
                 loadingMembers ? (
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-slate-500">
                     กำลังโหลด...
                   </span>
                 ) : null
@@ -467,9 +481,9 @@ export default function HrWorkforcePage() {
             />
 
             {selectedTeam ? (
-              <div className="overflow-x-auto rounded-xl border border-white/5">
+              <div className="card-surface overflow-x-auto rounded-2xl border border-[#E9EBF0]">
                 <table className="min-w-full text-left text-sm">
-                  <thead className="bg-[#0E1629]">
+                  <thead className="bg-[#F3F4F6] text-[#374151]">
                     <tr>
                       <th className="table-header-cell px-3 py-2">
                         ชื่อ-สกุล
@@ -483,29 +497,29 @@ export default function HrWorkforcePage() {
                       <th className="table-header-cell px-3 py-2">สถานะ</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-[#EEF2F7]">
                     {activeMembers.length === 0 && !loadingMembers ? (
                       <tr>
                         <td
                           colSpan={4}
-                          className="px-3 py-4 text-center text-xs text-slate-400"
+                          className="px-3 py-4 text-center text-xs text-slate-500"
                         >
                           ไม่พบกำลังคนปฏิบัติงาน
                         </td>
                       </tr>
                     ) : (
                       activeMembers.map((member) => (
-                        <tr key={member.id} className="table-row-hover">
-                          <td className="px-3 py-2 text-slate-200">
+                        <tr key={member.id} className="table-row-hover bg-white">
+                          <td className="px-3 py-2 font-medium text-slate-800">
                             {member.full_name}
                           </td>
-                          <td className="px-3 py-2 text-slate-300">
+                          <td className="px-3 py-2 text-slate-600">
                             {formatDate(member.start_date)}
                           </td>
-                          <td className="px-3 py-2 text-slate-300">
+                          <td className="px-3 py-2 text-slate-600">
                             {member.national_id ?? "-"}
                           </td>
-                          <td className="px-3 py-2 text-slate-300">
+                          <td className="px-3 py-2 text-slate-600">
                             {formatMembershipStatus(member.membership_status)}
                           </td>
                         </tr>
@@ -515,7 +529,7 @@ export default function HrWorkforcePage() {
                 </table>
               </div>
             ) : (
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-slate-500">
                 คลิกทีมจากรายการด้านบนเพื่อดูรายชื่อกำลังคนปฏิบัติงาน
               </p>
             )}
