@@ -29,7 +29,7 @@ type ActionModalProps = {
 };
 
 const docScopeOptions = [
-  { value: "INTERNAL", label: "ภายใน (มท.)" },
+  { value: "INTERNAL", label: "ภายนอก (มท.)" },
   { value: "TO_DISTRICT", label: "ส่งเขต" },
   { value: "OTHER", label: "อื่น ๆ" },
 ] as const;
@@ -122,7 +122,7 @@ export function ActionModal({
 
       if (!scopes.has("INTERNAL") || !scopes.has("TO_DISTRICT")) {
         setFormError(
-          "การรับเคสต้องมีเอกสาร ภายใน (มท.) และ ส่งเขต",
+          "การรับเคสต้องมีเอกสาร ภายนอก (มท.) และ ส่งเขต",
         );
         return;
       }

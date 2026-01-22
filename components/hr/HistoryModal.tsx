@@ -36,7 +36,7 @@ const actionTypeLabels: Record<string, string> = {
 };
 
 const docScopeLabels: Record<string, string> = {
-  INTERNAL: "ภายใน (มท.)",
+  INTERNAL: "ภายนอก (มท.)",
   TO_DISTRICT: "ส่งเขต",
   OTHER: "อื่น ๆ",
 };
